@@ -30,7 +30,8 @@
                     }}</span>
             </div>
             <div class="card-body">
-                <p><strong>Type:</strong> {{ work.work_type.replace('_', ' ').title() }}</p>
+                <p><strong>Type:</strong> {{ work.full_type if work.full_type else work.work_type.replace('_', '
+                    ').title() }}</p>
                 <p><strong>Branch:</strong> <code>{{ work.git_branch }}</code></p>
                 <p><strong>Started:</strong> {{ work.started_date.strftime('%Y-%m-%d %H:%M') }}</p>
                 {% if work.description %}

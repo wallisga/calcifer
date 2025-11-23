@@ -2,6 +2,9 @@
 
 All infrastructure changes are logged here.
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Change the work item attributes to include category and type for improved Change Log formatting.
 ## 2025-11-23 - Gavin Wallis
 - Update Roadmap Docs
 Update README

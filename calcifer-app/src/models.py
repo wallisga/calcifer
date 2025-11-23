@@ -10,20 +10,27 @@ class WorkItem(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
-    work_type = Column(String(50), nullable=False)  # new_service, config_change, new_vm, troubleshooting
-    status = Column(String(20), default="planning")  # planning, in_progress, complete, cancelled
+    
+    # NEW: Two-level work type system
+    category = Column(String(50), nullable=False)  # platform_feature, integration, service, documentation
+    action_type = Column(String(50), nullable=False)  # new, change, fix
+    
+    # DEPRECATED but keep for backward compatibility
+    work_type = Column(String(50), nullable=True)
+    
+    status = Column(String(20), default="planning")
     description = Column(Text)
     git_branch = Column(String(100))
     started_date = Column(DateTime, default=datetime.utcnow)
     completed_date = Column(DateTime, nullable=True)
     
-    # NEW: Git tracking fields
+    # Git tracking fields
     branch_merged = Column(Boolean, default=False)
     merge_commit_sha = Column(String(40), nullable=True)
     
-    # NEW: Documentation tracking
+    # Documentation tracking
     docs_updated = Column(Boolean, default=False)
-    docs_path = Column(String(200), nullable=True)  # Path to related docs
+    docs_path = Column(String(200), nullable=True)
     
     # Checklist stored as JSON
     checklist = Column(JSON, default=list)
@@ -35,7 +42,29 @@ class WorkItem(Base):
     commits = relationship("Commit", back_populates="work_item", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<WorkItem(id={self.id}, title='{self.title}', status='{self.status}')>"
+        return f"<WorkItem(id={self.id}, title='{self.title}', category='{self.category}', action='{self.action_type}')>"
+    
+    @property
+    def full_type(self):
+        """Get the full work type string for display."""
+        action_map = {
+            'new': 'New',
+            'change': 'Change',
+            'fix': 'Fix'
+        }
+        category_map = {
+            'platform_feature': 'Platform Feature',
+            'integration': 'Integration',
+            'service': 'Service',
+            'documentation': 'Document'
+        }
+        action = action_map.get(self.action_type, self.action_type.title())
+        cat = category_map.get(self.category, self.category.replace('_', ' ').title())
+        
+        if self.action_type == 'new':
+            return f"New {cat}"
+        else:
+            return f"{cat} {action}"
 
 class Service(Base):
     """Represents a deployed service/container/VM."""

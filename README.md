@@ -1,6 +1,6 @@
 # Calcifer
 
-Infrastructure platform for managing your ever-evolving systems - the heart that powers your moving castle.
+Infrastructure platform powering your continuously changing systems
 
 ## 📚 Documentation
 

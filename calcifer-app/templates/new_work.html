@@ -11,19 +11,44 @@
                         <label class="form-label">Title</label>
                         <input type="text" class="form-control" name="title" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Work Type</label>
-                        <select class="form-select" name="work_type" required>
-                            <option value="new_service">New Service/Container</option>
-                            <option value="config_change">Configuration Change</option>
-                            <option value="new_vm">New VM</option>
-                            <option value="troubleshooting">Troubleshooting</option>
-                        </select>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category" id="category" required>
+                                <option value="">Select category...</option>
+                                <option value="platform_feature">Platform Feature</option>
+                                <option value="integration">Integration</option>
+                                <option value="service">Service</option>
+                                <option value="documentation">Documentation</option>
+                            </select>
+                            <div class="form-text">What are you working on?</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Action Type</label>
+                            <select class="form-select" name="action_type" id="action_type" required>
+                                <option value="">Select action...</option>
+                                <option value="new">New</option>
+                                <option value="change">Change</option>
+                                <option value="fix">Fix</option>
+                            </select>
+                            <div class="form-text">What kind of change?</div>
+                        </div>
                     </div>
+
+                    <!-- Dynamic help text based on selection -->
+                    <div class="alert alert-info" id="helpText" style="display: none;">
+                        <strong>Examples:</strong>
+                        <ul class="mb-0 small" id="exampleList"></ul>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Description (optional)</label>
-                        <textarea class="form-control" name="description" rows="4"></textarea>
+                        <textarea class="form-control" name="description" rows="4"
+                            placeholder="Brief description of what you're doing..."></textarea>
                     </div>
+
                     <button type="submit" class="btn btn-primary">Create Work Item & Branch</button>
                     <a href="/" class="btn btn-outline-secondary">Cancel</a>
                 </form>
@@ -31,4 +56,48 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Dynamic help text
+    const examples = {
+        'platform_feature-new': ['Add commit workflow UI', 'Create backup automation', 'Build notification system'],
+        'platform_feature-change': ['Update work item validation', 'Improve UI layout', 'Refactor database models'],
+        'platform_feature-fix': ['Fix checklist persistence bug', 'Resolve merge conflicts', 'Correct routing issue'],
+        'integration-new': ['Add Uptime Kuma integration', 'Create Grafana connector', 'Build Slack notifications'],
+        'integration-change': ['Update Git integration logic', 'Improve commit detection', 'Enhance branch handling'],
+        'integration-fix': ['Fix Git merge issues', 'Resolve API connection problems', 'Correct webhook handling'],
+        'service-new': ['Deploy Vaultwarden', 'Set up Wireguard VPN', 'Create monitoring stack'],
+        'service-change': ['Update nginx configuration', 'Modify Docker Compose setup', 'Change resource allocation'],
+        'service-fix': ['Fix service connectivity', 'Resolve container restart loop', 'Correct port mapping'],
+        'documentation-new': ['Create architecture guide', 'Write API documentation', 'Build troubleshooting guide'],
+        'documentation-change': ['Update setup guide', 'Revise roadmap', 'Improve README']
+    };
+
+    const categorySelect = document.getElementById('category');
+    const actionSelect = document.getElementById('action_type');
+    const helpText = document.getElementById('helpText');
+    const exampleList = document.getElementById('exampleList');
+
+    function updateHelp() {
+        const category = categorySelect.value;
+        const action = actionSelect.value;
+
+        if (category && action) {
+            const key = `${category}-${action}`;
+            const exampleItems = examples[key] || [];
+
+            if (exampleItems.length > 0) {
+                exampleList.innerHTML = exampleItems.map(ex => `<li>${ex}</li>`).join('');
+                helpText.style.display = 'block';
+            } else {
+                helpText.style.display = 'none';
+            }
+        } else {
+            helpText.style.display = 'none';
+        }
+    }
+
+    categorySelect.addEventListener('change', updateHelp);
+    actionSelect.addEventListener('change', updateHelp);
+</script>
 {% endblock %}

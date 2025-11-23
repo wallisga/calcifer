@@ -68,7 +68,8 @@ async def new_work_form(request: Request):
 @app.post("/work/new")
 async def create_work(
     title: str = Form(...),
-    work_type: str = Form(...),
+    category: str = Form(...),
+    action_type: str = Form(...),
     description: str = Form(""),
     db: Session = Depends(get_db)
 ):
@@ -76,62 +77,131 @@ async def create_work(
     # Create work item
     work_item = models.WorkItem(
         title=title,
-        work_type=work_type,
+        category=category,
+        action_type=action_type,
         description=description,
         status="planning"
     )
     
-    # Generate branch name
-    branch_name = git_manager.generate_branch_name(work_type, title)
+    # Generate branch name using category and action
+    branch_prefix = f"{category}/{action_type}"
+    sanitized_title = title.lower().replace(" ", "-")
+    sanitized_title = "".join(c for c in sanitized_title if c.isalnum() or c == "-")
+    sanitized_title = sanitized_title[:30]
+    date_str = datetime.now().strftime("%Y%m%d")
+    branch_name = f"{branch_prefix}/{sanitized_title}-{date_str}"
+    
     work_item.git_branch = branch_name
     
     # Create Git branch
     git_manager.create_branch(branch_name, checkout=True)
     
-    # Initialize checklist based on work type
-    if work_type == "new_service":
-        work_item.checklist = [
-            {"item": "Define purpose and requirements", "done": False},
-            {"item": "Check resource availability (RAM/CPU)", "done": False},
-            {"item": "Create docker-compose.yml or config files", "done": False},
-            {"item": "Document service in work item notes", "done": False},
-            {"item": "Test locally", "done": False},
-            {"item": "Update docs/CHANGES.md with service details", "done": False},
-            {"item": "Deploy to target VM/host", "done": False},
-            {"item": "Add to service catalog in Calcifer", "done": False},
-            {"item": "Verify service is accessible", "done": False}
-        ]
-    elif work_type == "config_change":
-        work_item.checklist = [
-            {"item": "Document current configuration state", "done": False},
-            {"item": "Backup existing configuration files", "done": False},
-            {"item": "Make configuration changes", "done": False},
-            {"item": "Update docs/CHANGES.md with change details", "done": False},
-            {"item": "Test changes thoroughly", "done": False},
-            {"item": "Verify no regressions or issues", "done": False},
-            {"item": "Update relevant documentation", "done": False}
-        ]
-    elif work_type == "new_vm":
-        work_item.checklist = [
-            {"item": "Define VM purpose and requirements", "done": False},
-            {"item": "Allocate resources (RAM/CPU/disk)", "done": False},
-            {"item": "Create VM in Proxmox", "done": False},
-            {"item": "Install and configure OS", "done": False},
-            {"item": "Update docs/CHANGES.md with VM details", "done": False},
-            {"item": "Add VM to service catalog", "done": False},
-            {"item": "Configure monitoring/backups", "done": False},
-            {"item": "Document access credentials in Vaultwarden", "done": False}
-        ]
-    else:  # troubleshooting
-        work_item.checklist = [
-            {"item": "Identify and document the issue", "done": False},
-            {"item": "Investigate root cause", "done": False},
-            {"item": "Implement fix or workaround", "done": False},
-            {"item": "Update docs/CHANGES.md with resolution", "done": False},
-            {"item": "Test to verify issue is resolved", "done": False},
-            {"item": "Document for future reference", "done": False}
-        ]
-
+    # Initialize checklist based on category and action
+    if category == "platform_feature":
+        if action_type == "new":
+            work_item.checklist = [
+                {"item": "Define feature requirements and scope", "done": False},
+                {"item": "Design database schema changes (if any)", "done": False},
+                {"item": "Implement backend logic", "done": False},
+                {"item": "Create/update UI templates", "done": False},
+                {"item": "Test feature thoroughly", "done": False},
+                {"item": "Document feature in work notes", "done": False},
+                {"item": "Update user-facing documentation", "done": False}
+            ]
+        elif action_type == "change":
+            work_item.checklist = [
+                {"item": "Document current behavior", "done": False},
+                {"item": "Implement changes", "done": False},
+                {"item": "Test changes thoroughly", "done": False},
+                {"item": "Update related documentation", "done": False},
+                {"item": "Verify no regressions", "done": False}
+            ]
+        else:  # fix
+            work_item.checklist = [
+                {"item": "Reproduce the issue", "done": False},
+                {"item": "Identify root cause", "done": False},
+                {"item": "Implement fix", "done": False},
+                {"item": "Test fix thoroughly", "done": False},
+                {"item": "Verify issue is resolved", "done": False},
+                {"item": "Document fix for future reference", "done": False}
+            ]
+    
+    elif category == "integration":
+        if action_type == "new":
+            work_item.checklist = [
+                {"item": "Research integration API/requirements", "done": False},
+                {"item": "Create integration module structure", "done": False},
+                {"item": "Implement core integration logic", "done": False},
+                {"item": "Add configuration options", "done": False},
+                {"item": "Test integration end-to-end", "done": False},
+                {"item": "Document integration setup", "done": False},
+                {"item": "Add to INTEGRATIONS.md doc (if exists)", "done": False}
+            ]
+        elif action_type == "change":
+            work_item.checklist = [
+                {"item": "Document current integration behavior", "done": False},
+                {"item": "Implement changes", "done": False},
+                {"item": "Test integration functionality", "done": False},
+                {"item": "Update integration documentation", "done": False}
+            ]
+        else:  # fix
+            work_item.checklist = [
+                {"item": "Reproduce integration issue", "done": False},
+                {"item": "Identify root cause", "done": False},
+                {"item": "Implement fix", "done": False},
+                {"item": "Test integration thoroughly", "done": False},
+                {"item": "Document fix", "done": False}
+            ]
+    
+    elif category == "service":
+        if action_type == "new":
+            work_item.checklist = [
+                {"item": "Define service purpose and requirements", "done": False},
+                {"item": "Check resource availability (RAM/CPU/disk)", "done": False},
+                {"item": "Create docker-compose.yml or config files", "done": False},
+                {"item": "Test service locally", "done": False},
+                {"item": "Deploy to target VM/host", "done": False},
+                {"item": "Configure monitoring/health checks", "done": False},
+                {"item": "Add to service catalog in Calcifer", "done": False},
+                {"item": "Document service configuration", "done": False}
+            ]
+        elif action_type == "change":
+            work_item.checklist = [
+                {"item": "Document current service configuration", "done": False},
+                {"item": "Backup existing configuration", "done": False},
+                {"item": "Make configuration changes", "done": False},
+                {"item": "Test changes", "done": False},
+                {"item": "Update service catalog entry", "done": False},
+                {"item": "Update service documentation", "done": False}
+            ]
+        else:  # fix
+            work_item.checklist = [
+                {"item": "Identify service issue", "done": False},
+                {"item": "Check logs and diagnostics", "done": False},
+                {"item": "Implement fix", "done": False},
+                {"item": "Restart/redeploy service", "done": False},
+                {"item": "Verify service is healthy", "done": False},
+                {"item": "Document fix for future reference", "done": False}
+            ]
+    
+    elif category == "documentation":
+        if action_type == "new":
+            work_item.checklist = [
+                {"item": "Define documentation scope and audience", "done": False},
+                {"item": "Create document structure/outline", "done": False},
+                {"item": "Write documentation content", "done": False},
+                {"item": "Add examples and code snippets", "done": False},
+                {"item": "Review for clarity and accuracy", "done": False},
+                {"item": "Add to docs/ directory", "done": False}
+            ]
+        else:  # change (no "fix" for docs)
+            work_item.checklist = [
+                {"item": "Identify sections to update", "done": False},
+                {"item": "Make documentation changes", "done": False},
+                {"item": "Update examples if needed", "done": False},
+                {"item": "Review for accuracy", "done": False}
+            ]
+    
     db.add(work_item)
     db.commit()
     db.refresh(work_item)
@@ -263,33 +333,35 @@ async def commit_changes(
         from datetime import datetime
         changes_path = os.path.join(git_manager.repo_path, "docs", "CHANGES.md")
         
-        # Read current content
-        with open(changes_path, 'r') as f:
-            current_content = f.read()
-        
-        # Prepare new entry
+# Prepare new entry with proper formatting
         today = datetime.now().strftime('%Y-%m-%d')
         author = git_manager.repo.config_reader().get_value("user", "name")
-        new_entry = f"\n## {today} - {author}\n- {changes_entry}\n"
         
-        # Insert after header (find first ## and insert after it)
-        lines = current_content.split('\n')
-        insert_index = 0
+        # Get work type for the entry
+        work_type_display = work_item.full_type if hasattr(work_item, 'full_type') else work_item.work_type
+        
+        # Format: ## YYYY-MM-DD - Author - Work Type
+        # - Change description
+        new_entry = f"## {today} - {author} - {work_type_display}\n- {changes_entry}\n"
+        
+        # Read current content
+        with open(changes_path, 'r') as f:
+            lines = f.readlines()
+        
+        # Find where to insert (after the header, before first ## entry)
+        insert_index = len(lines)  # Default to end
         for i, line in enumerate(lines):
-            if line.startswith('## '):
+            if i > 0 and line.startswith('## '):  # Skip file header
                 insert_index = i
                 break
         
-        # If no existing entries, append
-        if insert_index == 0:
-            new_content = current_content + new_entry
-        else:
-            lines.insert(insert_index, new_entry.strip())
-            new_content = '\n'.join(lines)
+        # Insert with proper spacing
+        lines.insert(insert_index, '\n')
+        lines.insert(insert_index + 1, new_entry)
         
         # Write updated CHANGES.md
         with open(changes_path, 'w') as f:
-            f.write(new_content)
+            f.writelines(lines)
         
         # Stage all changes
         git_manager.repo.git.add('-A')
