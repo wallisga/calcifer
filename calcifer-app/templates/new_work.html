@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Start New Work - Calcifer{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus-circle"></i> Start New Work</div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Type</label>
+                        <select class="form-select" name="work_type" required>
+                            <option value="new_service">New Service/Container</option>
+                            <option value="config_change">Configuration Change</option>
+                            <option value="new_vm">New VM</option>
+                            <option value="troubleshooting">Troubleshooting</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description (optional)</label>
+                        <textarea class="form-control" name="description" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Work Item & Branch</button>
+                    <a href="/" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

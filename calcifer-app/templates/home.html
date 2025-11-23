@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Control Panel - Calcifer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Active Work -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-activity"></i> Current Work in Progress
+            </div>
+            <div class="card-body">
+                {% if active_work %}
+                    {% for work in active_work %}
+                    <div class="d-flex justify-content-between align-items-start mb-3 pb-3 border-bottom">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="/work/{{ work.id }}" class="text-decoration-none">{{ work.title }}</a>
+                            </h6>
+                            <div class="text-muted small">
+                                <span class="badge status-badge status-{{ work.status }}">{{ work.status.replace('_', ' ').title() }}</span>
+                                <span class="ms-2"><i class="bi bi-git"></i> {{ work.git_branch }}</span>
+                                <span class="ms-2"><i class="bi bi-calendar"></i> Started: {{ work.started_date.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                        <a href="/work/{{ work.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No active work. Ready to start something new?</p>
+                        <a href="/work/new" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Start New Work</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Changes -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Recent Changes
+            </div>
+            <div class="card-body">
+                {% if recent_changes %}
+                    <ul class="list-unstyled mb-0">
+                        {% for change in recent_changes %}
+                        <li class="mb-2">
+                            <span class="badge bg-secondary">{{ change.category }}</span>
+                            <span class="text-muted small">{{ change.date.strftime('%Y-%m-%d %H:%M') }}</span>
+                            - {{ change.description }}
+                            <span class="text-muted small">({{ change.author }})</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">No changes logged yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/work/new" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Start New Work</a>
+                    <a href="/services" class="btn btn-outline-primary"><i class="bi bi-hdd-stack"></i> View Services</a>
+                    <a href="/services/new" class="btn btn-outline-secondary"><i class="bi bi-plus"></i> Add Service</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Git Status -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-git"></i> Git Status
+            </div>
+            <div class="card-body git-status">
+                <p class="mb-2"><strong>Branch:</strong> <span class="badge bg-dark">{{ git_status.branch }}</span></p>
+                <p class="mb-2">
+                    <strong>Status:</strong> 
+                    {% if git_status.is_dirty %}
+                        <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Uncommitted changes</span>
+                    {% else %}
+                        <span class="text-success"><i class="bi bi-check-circle"></i> Clean</span>
+                    {% endif %}
+                </p>
+                {% if git_status.modified_files %}
+                <p class="mb-2"><strong>Modified:</strong> {{ git_status.modified_files|length }} files</p>
+                {% endif %}
+                {% if git_status.untracked_files %}
+                <p class="mb-2"><strong>Untracked:</strong> {{ git_status.untracked_files|length }} files</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Rules Reminder -->
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle"></i> Rules for Future You
+            </div>
+            <div class="card-body">
+                <ol class="small mb-0">
+                    <li>No changes without a work item</li>
+                    <li>Update CHANGES.md before committing</li>
+                    <li>Document as you work, not after</li>
+                    <li>Keep service catalog current</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Recently Completed -->
+        {% if completed_work %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-check-circle"></i> Recently Completed
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 small">
+                    {% for work in completed_work %}
+                    <li class="mb-2">
+                        <a href="/work/{{ work.id }}" class="text-decoration-none">{{ work.title }}</a>
+                        <div class="text-muted small">{{ work.completed_date.strftime('%Y-%m-%d') }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

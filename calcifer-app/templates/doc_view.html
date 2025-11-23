@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ doc_title }} - Documentation{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-file-earmark-text"></i> {{ doc_title }}</h2>
+            <div>
+                <a href="/docs-viewer" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> All Docs</a>
+                <a href="/" class="btn btn-outline-secondary"><i class="bi bi-house"></i> Home</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body doc-content">
+                {{ content|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.doc-content {
+    font-size: 1rem;
+    line-height: 1.7;
+}
+.doc-content h1 {
+    font-size: 2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+}
+.doc-content h2 {
+    font-size: 1.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.3rem;
+}
+.doc-content h3 {
+    font-size: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+.doc-content code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: #e83e8c;
+}
+.doc-content pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+}
+.doc-content pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+}
+.doc-content table {
+    width: 100%;
+    margin: 1rem 0;
+    border-collapse: collapse;
+}
+.doc-content table th,
+.doc-content table td {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+}
+.doc-content table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.doc-content blockquote {
+    border-left: 4px solid #c0392b;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #6c757d;
+}
+.doc-content ul, .doc-content ol {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+.doc-content li {
+    margin-bottom: 0.5rem;
+}
+.doc-content a {
+    color: #c0392b;
+    text-decoration: none;
+}
+.doc-content a:hover {
+    text-decoration: underline;
+}
+.doc-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 1rem 0;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ work.title }} - Calcifer{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span><i class="bi bi-file-text"></i> {{ work.title }}</span>
+                <span class="badge status-badge status-{{ work.status }}">{{ work.status.replace('_', ' ').title() }}</span>
+            </div>
+            <div class="card-body">
+                <p><strong>Type:</strong> {{ work.work_type.replace('_', ' ').title() }}</p>
+                <p><strong>Branch:</strong> <code>{{ work.git_branch }}</code></p>
+                <p><strong>Started:</strong> {{ work.started_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                {% if work.description %}
+                <p><strong>Description:</strong></p>
+                <p>{{ work.description }}</p>
+                {% endif %}
+                
+                <h5 class="mt-4">Checklist</h5>
+                <form method="post">
+                    {% for item in work.checklist %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" {% if item.done %}checked{% endif %}
+                               onclick="this.form.action='/work/{{ work.id }}/checklist/{{ loop.index0 }}'; this.form.submit();">
+                        <label class="form-check-label {% if item.done %}text-decoration-line-through text-muted{% endif %}">
+                            {{ item.item }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </form>
+                
+                {% if work.notes %}
+                <h5 class="mt-4">Notes</h5>
+                <pre class="bg-light p-3 rounded">{{ work.notes }}</pre>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body d-grid gap-2">
+                {% if work.status != 'complete' %}
+                <form method="post" action="/work/{{ work.id }}/complete">
+                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle"></i> Mark Complete</button>
+                </form>
+                {% endif %}
+                <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Control Panel</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

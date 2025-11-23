@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Add Service - Calcifer{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus"></i> Add New Service</div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Service Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" name="service_type" required>
+                                <option value="container">Container</option>
+                                <option value="vm">VM</option>
+                                <option value="bare_metal">Bare Metal</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Host/VM</label>
+                        <input type="text" class="form-control" name="host" placeholder="e.g., services-vm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">URL (optional)</label>
+                        <input type="url" class="form-control" name="url" placeholder="http://...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description (optional)</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ports (optional)</label>
+                            <input type="text" class="form-control" name="ports" placeholder="8080:80">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">CPU (optional)</label>
+                            <input type="text" class="form-control" name="cpu" placeholder="2 vCPU">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Memory (optional)</label>
+                            <input type="text" class="form-control" name="memory" placeholder="2GB">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Service</button>
+                    <a href="/services" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
