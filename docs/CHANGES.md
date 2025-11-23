@@ -7,6 +7,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Document Change
+- Delete sandmox endpoint document
 ## 2025-11-23 - Gavin Wallis - New Service
 - Add monitoring endpoint: storage (network - 10.66.33.11)
 ## 2025-11-23 - Gavin Wallis - New Service
