@@ -14,6 +14,7 @@ from pathlib import Path
 from . import models, schemas
 from .database import engine, get_db, init_db
 from .git_integration import GitManager
+from .integrations.monitoring import monitoring, MonitoringIntegration
 
 # Initialize database
 models.Base.metadata.create_all(bind=engine)
@@ -879,21 +880,8 @@ async def check_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
-    # Perform check based on endpoint type
-    is_up = perform_endpoint_check(endpoint)
-    
-    # Update status
-    endpoint.last_check = datetime.utcnow()
-    if is_up:
-        endpoint.status = "up"
-        endpoint.last_up = datetime.utcnow()
-        endpoint.consecutive_failures = 0
-    else:
-        endpoint.status = "down"
-        endpoint.last_down = datetime.utcnow()
-        endpoint.consecutive_failures += 1
-    
-    db.commit()
+    # Use monitoring integration
+    is_up = monitoring.update_endpoint_status(endpoint, db)
     
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=303)
 
@@ -922,108 +910,25 @@ async def delete_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
 # Helper functions
 
 def generate_endpoint_documentation(name, endpoint_type, target, port, description):
-    """Generate markdown documentation for endpoint."""
-    port_section = f"\n**Port:** {port}" if port else ""
-    
-    return f"""# Endpoint: {name}
-
-## Overview
-
-**Type:** {endpoint_type.upper()}  
-**Target:** `{target}`{port_section}  
-**Status:** Monitored by Calcifer
-
-{description if description else ''}
-
-## Monitoring Configuration
-
-This endpoint is monitored for availability.
-
-**Check Type:** {endpoint_type}  
-**Check Method:** {'Ping (ICMP)' if endpoint_type == 'network' else 'TCP connection' if endpoint_type == 'tcp' else 'HTTP request'}
-
-## Access Information
-
-**Target:** `{target}`{port_section}
-
-## Troubleshooting
-
-### Endpoint is Down
-
-1. **Check network connectivity:**
-```bash
-   ping {target}
-```
-
-2. **Check specific port (if applicable):**
-```bash
-   {'telnet ' + target + ' ' + str(port) if port else 'nc -zv ' + target}
-```
-
-3. **Check firewall rules:**
-   - Verify firewall allows traffic from monitoring server
-   - Check iptables/firewalld rules
-
-4. **Verify service is running:**
-   - Check if the target service/device is online
-   - Review service logs
-
-## History
-
-- **Created:** {datetime.now().strftime('%Y-%m-%d')}
-- **Purpose:** Monitor availability of {name}
-
-## Related
-
-- Endpoint configuration in Calcifer
-- Service catalog entry
-"""
-
-def perform_endpoint_check(endpoint: models.Endpoint) -> bool:
     """
-    Perform actual connectivity check based on endpoint type.
+    Generate endpoint documentation using monitoring integration.
     
-    Returns True if endpoint is up, False if down.
+    DEPRECATED: Use MonitoringIntegration.generate_endpoint_documentation() directly.
+    Kept for backward compatibility.
     """
-    import subprocess
-    import socket
+    return MonitoringIntegration.generate_endpoint_documentation(
+        name, endpoint_type, target, port, description
+    )
+
+def perform_endpoint_check(endpoint) -> bool:
+    """
+    Perform endpoint check using monitoring integration.
     
-    try:
-        if endpoint.endpoint_type == "network":
-            # Ping check
-            result = subprocess.run(
-                ['ping', '-c', '1', '-W', '2', endpoint.target],
-                capture_output=True,
-                timeout=5
-            )
-            return result.returncode == 0
-        
-        elif endpoint.endpoint_type == "tcp":
-            # TCP port check
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
-            result = sock.connect_ex((endpoint.target, endpoint.port))
-            sock.close()
-            return result == 0
-        
-        elif endpoint.endpoint_type == "http" or endpoint.endpoint_type == "https":
-            # HTTP check
-            import urllib.request
-            protocol = "https" if endpoint.endpoint_type == "https" else "http"
-            port_part = f":{endpoint.port}" if endpoint.port else ""
-            url = f"{protocol}://{endpoint.target}{port_part}"
-            
-            req = urllib.request.Request(url, method='GET')
-            response = urllib.request.urlopen(req, timeout=5)
-            return response.status < 400
-        
-        else:
-            # Unknown type, assume down
-            return False
-            
-    except Exception as e:
-        print(f"Endpoint check failed for {endpoint.name}: {e}")
-        return False
+    DEPRECATED: Use monitoring.check_endpoint() directly.
+    Kept for backward compatibility.
+    """
+    is_up, error_msg = monitoring.check_endpoint(endpoint)
+    return is_up
 
 # ============================================================================
 # API ROUTES (for future automation/integrations)

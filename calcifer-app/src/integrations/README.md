@@ -1,0 +1,118 @@
+# Calcifer Integrations
+
+This directory contains optional integrations that extend Calcifer's functionality.
+
+## Available Integrations
+
+### Monitoring (`monitoring.py`)
+**Status:** ✅ Active  
+**Purpose:** Synthetic monitoring and endpoint health checks
+
+**Features:**
+- ICMP ping checks
+- TCP port connectivity
+- HTTP/HTTPS availability
+- Automatic status tracking
+- Documentation generation
+
+**Future Enhancements:**
+- WMI checks for Windows hosts
+- SNMP checks for network devices
+- Custom application instrumentation
+- Integration with Uptime Kuma API
+
+---
+
+### Git (`git.py` - future)
+**Status:** 🚧 To be refactored  
+**Purpose:** Git operations and version control
+
+Currently in `git_integration.py`, will be moved here for consistency.
+
+---
+
+## Future Integrations
+
+### Uptime Kuma
+**Status:** 📋 Planned  
+**Purpose:** Integration with Uptime Kuma monitoring platform
+
+**Features:**
+- Sync endpoints to Uptime Kuma
+- Pull monitoring data from Uptime Kuma
+- Unified status display
+
+---
+
+### Grafana
+**Status:** 📋 Planned  
+**Purpose:** Dashboard and metrics visualization
+
+**Features:**
+- Embed Grafana dashboards in Calcifer
+- Link services to Grafana panels
+- Unified monitoring view
+
+---
+
+### Notifications
+**Status:** 📋 Planned  
+**Purpose:** Alert delivery via multiple channels
+
+**Features:**
+- Slack notifications
+- Discord webhooks
+- Email alerts
+- Work item notifications
+
+---
+
+### Backups
+**Status:** 📋 Planned  
+**Purpose:** Automated backup management
+
+**Features:**
+- Database backups
+- Configuration backups
+- Remote storage (S3, etc.)
+- Restore capabilities
+
+---
+
+## Integration Guidelines
+
+### Structure
+
+Each integration should be self-contained in its own file:
+```python
+class SomeIntegration:
+    """Integration description."""
+    
+    def __init__(self, config: dict = None):
+        """Initialize with optional configuration."""
+        pass
+    
+    def check_connectivity(self) -> bool:
+        """Test if integration is working."""
+        pass
+    
+    # Integration-specific methods
+```
+
+### Configuration
+
+Integrations should accept configuration via:
+1. Constructor arguments
+2. Environment variables
+3. Database settings (future)
+
+### Error Handling
+
+All integrations must handle errors gracefully and return meaningful error messages.
+
+### Documentation
+
+Each integration must have:
+- Docstrings for all public methods
+- Usage examples
+- Configuration documentation

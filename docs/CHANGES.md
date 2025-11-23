@@ -8,6 +8,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Platform Feature
+- Monitoring features are now being managed in the Integrations domain. This included the deprecation of endpoint features in main.
 ## 2025-11-23 - Gavin Wallis - Document Change
 - Delete sandmox endpoint document
 ## 2025-11-23 - Gavin Wallis - New Service
