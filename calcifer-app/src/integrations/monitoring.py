@@ -1,13 +1,3 @@
-"""
-Monitoring Integration
-
-Provides synthetic monitoring capabilities for network endpoints.
-Supports ping (ICMP), TCP port checks, and HTTP/HTTPS requests.
-
-This integration is optional and can be disabled if external monitoring
-tools (like Uptime Kuma) are used instead.
-"""
-
 import subprocess
 import socket
 import urllib.request
@@ -39,6 +29,20 @@ class MonitoringIntegration:
             timeout: Default timeout in seconds for checks
         """
         self.timeout = timeout
+    
+    def check_connectivity(self) -> bool:
+        """
+        Test if monitoring integration is working.
+        
+        Returns:
+            True if monitoring can be performed
+        """
+        # Basic test - can we run subprocess commands?
+        try:
+            result = subprocess.run(['echo', 'test'], capture_output=True, timeout=1)
+            return result.returncode == 0
+        except:
+            return False
     
     def check_endpoint(self, endpoint) -> Tuple[bool, Optional[str]]:
         """
@@ -163,90 +167,6 @@ class MonitoringIntegration:
         
         db.commit()
         return is_up
-    
-    @staticmethod
-    def generate_endpoint_documentation(
-        name: str,
-        endpoint_type: str,
-        target: str,
-        port: Optional[int],
-        description: str
-    ) -> str:
-        """
-        Generate markdown documentation for an endpoint.
-        
-        Args:
-            name: Endpoint name
-            endpoint_type: Type of endpoint (network, tcp, http, https)
-            target: Target hostname or IP
-            port: Port number (optional)
-            description: User-provided description
-            
-        Returns:
-            Markdown formatted documentation string
-        """
-        port_section = f"\n**Port:** {port}" if port else ""
-        
-        check_method = {
-            'network': 'Ping (ICMP)',
-            'tcp': 'TCP connection',
-            'http': 'HTTP request',
-            'https': 'HTTPS request'
-        }.get(endpoint_type, 'Unknown')
-        
-        return f"""# Endpoint: {name}
-
-## Overview
-
-**Type:** {endpoint_type.upper()}  
-**Target:** `{target}`{port_section}  
-**Status:** Monitored by Calcifer
-
-{description if description else ''}
-
-## Monitoring Configuration
-
-This endpoint is monitored for availability.
-
-**Check Type:** {endpoint_type}  
-**Check Method:** {check_method}
-
-## Access Information
-
-**Target:** `{target}`{port_section}
-
-## Troubleshooting
-
-### Endpoint is Down
-
-1. **Check network connectivity:**
-```bash
-   ping {target}
-```
-
-2. **Check specific port (if applicable):**
-```bash
-   {'telnet ' + target + ' ' + str(port) if port else 'nc -zv ' + target}
-```
-
-3. **Check firewall rules:**
-   - Verify firewall allows traffic from monitoring server
-   - Check iptables/firewalld rules
-
-4. **Verify service is running:**
-   - Check if the target service/device is online
-   - Review service logs
-
-## History
-
-- **Created:** {datetime.now().strftime('%Y-%m-%d')}
-- **Purpose:** Monitor availability of {name}
-
-## Related
-
-- Endpoint configuration in Calcifer
-- Service catalog entry
-"""
 
 
 # Singleton instance for easy import

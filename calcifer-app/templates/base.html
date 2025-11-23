@@ -14,6 +14,7 @@
             --accent-color: #e74c3c;
             --accent-light: #f1948a;
             --warm-bg: #fdf2f0;
+            --integration-color: #3498db;
         }
 
         body {
@@ -32,6 +33,28 @@
 
         .navbar-brand::before {
             content: "🔥 ";
+        }
+
+        /* Style for integration menu items */
+        .nav-item.integration {
+            border-left: 3px solid var(--integration-color);
+            padding-left: 8px;
+        }
+
+        .nav-item.integration .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+
+        .nav-item.integration .nav-link:hover {
+            color: rgba(255, 255, 255, 1) !important;
+        }
+
+        /* Separator between core and integrations */
+        .nav-separator {
+            width: 2px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 15px;
         }
 
         .card {
@@ -112,17 +135,38 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Core Features -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/work/new"><i class="bi bi-plus-circle"></i> New Work</a>
+                        <a class="nav-link" href="/work/new">
+                            <i class="bi bi-plus-circle"></i> New Work
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/docs-viewer"><i class="bi bi-book"></i> Docs</a>
+                        <a class="nav-link" href="/services">
+                            <i class="bi bi-hdd-stack"></i> Services
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/services"><i class="bi bi-hdd-stack"></i> Services</a>
+                        <a class="nav-link" href="/docs-viewer">
+                            <i class="bi bi-book"></i> Docs
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/endpoints"><i class="bi bi-broadcast"></i> Endpoints</a>
+
+                    <!-- Separator -->
+                    <li class="nav-item d-none d-lg-flex align-items-center">
+                        <div class="nav-separator"></div>
+                    </li>
+
+                    <!-- Integrations -->
+                    <li class="nav-item integration">
+                        <a class="nav-link" href="/endpoints">
+                            <i class="bi bi-broadcast"></i> Monitoring
+                        </a>
+                    </li>
+                    <li class="nav-item integration">
+                        <a class="nav-link" href="/git/status">
+                            <i class="bi bi-git"></i> Git
+                        </a>
                     </li>
                 </ul>
             </div>
