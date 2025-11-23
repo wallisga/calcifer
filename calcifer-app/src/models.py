@@ -111,6 +111,47 @@ class Commit(Base):
     
     def __repr__(self):
         return f"<Commit(sha='{self.commit_sha[:7]}', work_item_id={self.work_item_id})>"
+    
+class Endpoint(Base):
+    """Represents a monitored endpoint (network node, service, etc.)."""
+    __tablename__ = "endpoints"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    endpoint_type = Column(String(50), nullable=False)  # network, http, tcp, os, application
+    target = Column(String(200), nullable=False)  # IP address or hostname
+    port = Column(Integer, nullable=True)  # For TCP/HTTP checks
+    check_interval = Column(Integer, default=60)  # Seconds
+    
+    # Status tracking
+    status = Column(String(20), default="unknown")  # up, down, unknown
+    last_check = Column(DateTime, nullable=True)
+    last_up = Column(DateTime, nullable=True)
+    last_down = Column(DateTime, nullable=True)
+    consecutive_failures = Column(Integer, default=0)
+    
+    # Metadata
+    description = Column(Text, nullable=True)
+    documentation_url = Column(String(200), nullable=True)  # Link to docs/{name}.md
+    work_item_id = Column(Integer, ForeignKey("work_items.id"), nullable=True)  # Creation work item
+    
+    # Monitoring config (JSON for flexibility)
+    monitor_config = Column(JSON, default=dict)  # Future: WMI, SNMP, custom checks
+    
+    created_date = Column(DateTime, default=datetime.utcnow)
+    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<Endpoint(name='{self.name}', type='{self.endpoint_type}', status='{self.status}')>"
+    
+    @property
+    def is_up(self):
+        return self.status == "up"
+    
+    @property
+    def uptime_percentage(self):
+        # Future: calculate from check history
+        return 0.0    
 
 class ChangeLog(Base):
     """Tracks all changes for CHANGES.md generation."""

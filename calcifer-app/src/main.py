@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import os
+import json
 import markdown
 from pathlib import Path
 
@@ -637,6 +638,285 @@ async def create_service(
     db.commit()
     
     return RedirectResponse(url="/services", status_code=303)
+
+# ============================================================================
+# ENDPOINT ROUTES (Monitoring)
+# ============================================================================
+
+@app.get("/endpoints", response_class=HTMLResponse)
+async def endpoint_list(request: Request, db: Session = Depends(get_db)):
+    """List all monitored endpoints."""
+    endpoints = db.query(models.Endpoint).order_by(models.Endpoint.name).all()
+    return templates.TemplateResponse("endpoint_list.html", {
+        "request": request,
+        "endpoints": endpoints
+    })
+
+@app.get("/endpoints/new", response_class=HTMLResponse)
+async def endpoint_wizard(request: Request):
+    """Wizard to create new monitored endpoint."""
+    return templates.TemplateResponse("endpoint_wizard.html", {
+        "request": request
+    })
+
+@app.post("/endpoints/new")
+async def create_endpoint(
+    name: str = Form(...),
+    endpoint_type: str = Form(...),
+    target: str = Form(...),
+    port: int = Form(None),
+    check_interval: int = Form(60),
+    description: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Create endpoint with monitoring, docs, and work item."""
+    
+    # 1. Create work item
+    work_item = models.WorkItem(
+        title=f"Add monitoring endpoint: {name}",
+        category="service",
+        action_type="new",
+        description=f"Create monitoring endpoint for {endpoint_type} target: {target}",
+        status="planning"
+    )
+    
+    # Generate branch
+    branch_name = f"service/new/endpoint-{name.lower().replace(' ', '-')}-{datetime.now().strftime('%Y%m%d')}"
+    work_item.git_branch = branch_name
+    git_manager.create_branch(branch_name, checkout=True)
+    
+    # Checklist for endpoint creation
+    work_item.checklist = [
+        {"item": "Define endpoint details", "done": True},  # Already done in form
+        {"item": "Create documentation", "done": False},
+        {"item": "Configure monitoring check", "done": False},
+        {"item": "Verify endpoint is reachable", "done": False},
+        {"item": "Add to endpoint catalog", "done": False}
+    ]
+    
+    db.add(work_item)
+    db.commit()
+    db.refresh(work_item)
+    
+    # 2. Create endpoint entry
+    endpoint = models.Endpoint(
+        name=name,
+        endpoint_type=endpoint_type,
+        target=target,
+        port=port,
+        check_interval=check_interval,
+        description=description,
+        work_item_id=work_item.id,
+        status="unknown"  # Will be checked after setup
+    )
+    
+    # 3. Generate documentation
+    doc_content = generate_endpoint_documentation(name, endpoint_type, target, port, description)
+    doc_filename = f"endpoint-{name.lower().replace(' ', '-')}.md"
+    doc_path = os.path.join(git_manager.repo_path, "docs", doc_filename)
+    
+    # Create docs directory if doesn't exist
+    os.makedirs(os.path.dirname(doc_path), exist_ok=True)
+    
+    with open(doc_path, 'w') as f:
+        f.write(doc_content)
+    
+    endpoint.documentation_url = f"/docs-viewer/{doc_filename}"
+    
+    # 4. Generate monitoring config (placeholder for now)
+    monitor_config = {
+        "check_type": endpoint_type,
+        "target": target,
+        "port": port,
+        "interval": check_interval,
+        "timeout": 5,
+        "retries": 3
+    }
+    endpoint.monitor_config = monitor_config
+    
+    db.add(endpoint)
+    db.commit()
+    
+    # 5. Add files to git
+    git_manager.stage_files([f"docs/{doc_filename}"])
+    
+    # 6. Update work item notes
+    work_item.notes = f"""# Endpoint: {name}
+
+**Type:** {endpoint_type}
+**Target:** {target}
+{'**Port:** ' + str(port) if port else ''}
+**Check Interval:** {check_interval}s
+
+## Generated Files
+- Documentation: `docs/{doc_filename}`
+- Monitoring config: Stored in database
+
+## Configuration
+```json
+{json.dumps(monitor_config, indent=2)}
+```
+
+## Next Steps
+1. Review documentation
+2. Commit changes
+3. Perform initial connectivity check
+4. Merge and complete
+"""
+    db.commit()
+    
+    # 7. Redirect to work item
+    return RedirectResponse(url=f"/work/{work_item.id}?success=Endpoint created! Review and commit changes.", status_code=303)
+
+@app.get("/endpoints/{endpoint_id}", response_class=HTMLResponse)
+async def endpoint_detail(request: Request, endpoint_id: int, db: Session = Depends(get_db)):
+    """View endpoint details and status."""
+    endpoint = db.query(models.Endpoint).filter(models.Endpoint.id == endpoint_id).first()
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    # Get associated work item
+    work_item = None
+    if endpoint.work_item_id:
+        work_item = db.query(models.WorkItem).filter(models.WorkItem.id == endpoint.work_item_id).first()
+    
+    return templates.TemplateResponse("endpoint_detail.html", {
+        "request": request,
+        "endpoint": endpoint,
+        "work_item": work_item
+    })
+
+@app.post("/endpoints/{endpoint_id}/check")
+async def check_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
+    """Manually trigger endpoint check."""
+    endpoint = db.query(models.Endpoint).filter(models.Endpoint.id == endpoint_id).first()
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    # Perform check based on endpoint type
+    is_up = perform_endpoint_check(endpoint)
+    
+    # Update status
+    endpoint.last_check = datetime.utcnow()
+    if is_up:
+        endpoint.status = "up"
+        endpoint.last_up = datetime.utcnow()
+        endpoint.consecutive_failures = 0
+    else:
+        endpoint.status = "down"
+        endpoint.last_down = datetime.utcnow()
+        endpoint.consecutive_failures += 1
+    
+    db.commit()
+    
+    return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=303)
+
+
+# Helper functions
+
+def generate_endpoint_documentation(name, endpoint_type, target, port, description):
+    """Generate markdown documentation for endpoint."""
+    port_section = f"\n**Port:** {port}" if port else ""
+    
+    return f"""# Endpoint: {name}
+
+## Overview
+
+**Type:** {endpoint_type.upper()}  
+**Target:** `{target}`{port_section}  
+**Status:** Monitored by Calcifer
+
+{description if description else ''}
+
+## Monitoring Configuration
+
+This endpoint is monitored for availability.
+
+**Check Type:** {endpoint_type}  
+**Check Method:** {'Ping (ICMP)' if endpoint_type == 'network' else 'TCP connection' if endpoint_type == 'tcp' else 'HTTP request'}
+
+## Access Information
+
+**Target:** `{target}`{port_section}
+
+## Troubleshooting
+
+### Endpoint is Down
+
+1. **Check network connectivity:**
+```bash
+   ping {target}
+```
+
+2. **Check specific port (if applicable):**
+```bash
+   {'telnet ' + target + ' ' + str(port) if port else 'nc -zv ' + target}
+```
+
+3. **Check firewall rules:**
+   - Verify firewall allows traffic from monitoring server
+   - Check iptables/firewalld rules
+
+4. **Verify service is running:**
+   - Check if the target service/device is online
+   - Review service logs
+
+## History
+
+- **Created:** {datetime.now().strftime('%Y-%m-%d')}
+- **Purpose:** Monitor availability of {name}
+
+## Related
+
+- Endpoint configuration in Calcifer
+- Service catalog entry
+"""
+
+def perform_endpoint_check(endpoint: models.Endpoint) -> bool:
+    """
+    Perform actual connectivity check based on endpoint type.
+    
+    Returns True if endpoint is up, False if down.
+    """
+    import subprocess
+    import socket
+    
+    try:
+        if endpoint.endpoint_type == "network":
+            # Ping check
+            result = subprocess.run(
+                ['ping', '-c', '1', '-W', '2', endpoint.target],
+                capture_output=True,
+                timeout=5
+            )
+            return result.returncode == 0
+        
+        elif endpoint.endpoint_type == "tcp":
+            # TCP port check
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((endpoint.target, endpoint.port))
+            sock.close()
+            return result == 0
+        
+        elif endpoint.endpoint_type == "http" or endpoint.endpoint_type == "https":
+            # HTTP check
+            import urllib.request
+            protocol = "https" if endpoint.endpoint_type == "https" else "http"
+            port_part = f":{endpoint.port}" if endpoint.port else ""
+            url = f"{protocol}://{endpoint.target}{port_part}"
+            
+            req = urllib.request.Request(url, method='GET')
+            response = urllib.request.urlopen(req, timeout=5)
+            return response.status < 400
+        
+        else:
+            # Unknown type, assume down
+            return False
+            
+    except Exception as e:
+        print(f"Endpoint check failed for {endpoint.name}: {e}")
+        return False
 
 # ============================================================================
 # API ROUTES (for future automation/integrations)

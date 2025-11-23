@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Monitored Endpoints - Calcifer{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-broadcast"></i> Monitored Endpoints</h2>
+    <a href="/endpoints/new" class="btn btn-primary"><i class="bi bi-plus"></i> Add Endpoint</a>
+</div>
+
+{% if endpoints %}
+<div class="row">
+    {% for endpoint in endpoints %}
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">{{ endpoint.name }}</h5>
+                    {% if endpoint.status == 'up' %}
+                    <span class="badge bg-success">UP</span>
+                    {% elif endpoint.status == 'down' %}
+                    <span class="badge bg-danger">DOWN</span>
+                    {% else %}
+                    <span class="badge bg-secondary">UNKNOWN</span>
+                    {% endif %}
+                </div>
+
+                <p class="text-muted small mb-2">
+                    <span class="badge bg-secondary">{{ endpoint.endpoint_type }}</span>
+                    {{ endpoint.target }}{% if endpoint.port %}:{{ endpoint.port }}{% endif %}
+                </p>
+
+                {% if endpoint.description %}
+                <p class="small">{{ endpoint.description[:100] }}{% if endpoint.description|length > 100 %}...{% endif
+                    %}</p>
+                {% endif %}
+
+                {% if endpoint.last_check %}
+                <p class="small text-muted mb-2">
+                    <i class="bi bi-clock"></i> Last check: {{ endpoint.last_check.strftime('%H:%M:%S') }}
+                </p>
+                {% endif %}
+
+                <div class="d-grid gap-2">
+                    <a href="/endpoints/{{ endpoint.id }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-broadcast" style="font-size: 3rem;"></i>
+    <p class="mt-2">No endpoints configured yet.</p>
+    <a href="/endpoints/new" class="btn btn-primary">Add Your First Endpoint</a>
+</div>
+{% endif %}
+{% endblock %}

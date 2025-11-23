@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Add Endpoint - Calcifer{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus-circle"></i> Add Monitored Endpoint</div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" required
+                            placeholder="e.g., Proxmox Server, RAID Storage, Web App">
+                        <div class="form-text">Friendly name for this endpoint</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Endpoint Type <span class="text-danger">*</span></label>
+                        <select class="form-select" name="endpoint_type" id="endpoint_type" required>
+                            <option value="">Select type...</option>
+                            <option value="network">Network (Ping)</option>
+                            <option value="tcp">TCP Port</option>
+                            <option value="http">HTTP Service</option>
+                            <option value="https">HTTPS Service</option>
+                        </select>
+                        <div class="form-text">How should this endpoint be monitored?</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Target <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="target" required
+                            placeholder="e.g., 192.168.1.100 or example.com">
+                        <div class="form-text">IP address or hostname</div>
+                    </div>
+
+                    <div class="mb-3" id="portField" style="display: none;">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-control" name="port" placeholder="e.g., 80, 443, 3306">
+                        <div class="form-text">Required for TCP/HTTP checks</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Check Interval</label>
+                        <select class="form-select" name="check_interval">
+                            <option value="30">30 seconds</option>
+                            <option value="60" selected>1 minute</option>
+                            <option value="300">5 minutes</option>
+                            <option value="600">10 minutes</option>
+                        </select>
+                        <div class="form-text">How often to check availability</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description (optional)</label>
+                        <textarea class="form-control" name="description" rows="3"
+                            placeholder="Purpose of this endpoint, location, notes..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong><i class="bi bi-info-circle"></i> This will create:</strong>
+                        <ul class="mb-0">
+                            <li>Monitoring configuration in Calcifer</li>
+                            <li>Documentation file in docs/</li>
+                            <li>Work item to track the setup</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Endpoint
+                    </button>
+                    <a href="/endpoints" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide port field based on endpoint type
+    const typeSelect = document.getElementById('endpoint_type');
+    const portField = document.getElementById('portField');
+    const portInput = portField.querySelector('input');
+
+    typeSelect.addEventListener('change', function () {
+        const type = this.value;
+        if (type === 'tcp' || type === 'http' || type === 'https') {
+            portField.style.display = 'block';
+            portInput.required = (type === 'tcp');
+
+            // Set default ports
+            if (type === 'http' && !portInput.value) {
+                portInput.value = 80;
+            } else if (type === 'https' && !portInput.value) {
+                portInput.value = 443;
+            }
+        } else {
+            portField.style.display = 'none';
+            portInput.required = false;
+            portInput.value = '';
+        }
+    });
+</script>
+{% endblock %}

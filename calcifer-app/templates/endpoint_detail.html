@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ endpoint.name }} - Calcifer{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span><i class="bi bi-broadcast"></i> {{ endpoint.name }}</span>
+                {% if endpoint.status == 'up' %}
+                <span class="badge bg-success">UP</span>
+                {% elif endpoint.status == 'down' %}
+                <span class="badge bg-danger">DOWN</span>
+                {% else %}
+                <span class="badge bg-secondary">UNKNOWN</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Type:</dt>
+                    <dd class="col-sm-9"><span class="badge bg-secondary">{{ endpoint.endpoint_type }}</span></dd>
+
+                    <dt class="col-sm-3">Target:</dt>
+                    <dd class="col-sm-9">
+                        <code>{{ endpoint.target }}{% if endpoint.port %}:{{ endpoint.port }}{% endif %}</code></dd>
+
+                    <dt class="col-sm-3">Check Interval:</dt>
+                    <dd class="col-sm-9">{{ endpoint.check_interval }} seconds</dd>
+
+                    {% if endpoint.last_check %}
+                    <dt class="col-sm-3">Last Check:</dt>
+                    <dd class="col-sm-9">{{ endpoint.last_check.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                    {% endif %}
+
+                    {% if endpoint.last_up %}
+                    <dt class="col-sm-3">Last Up:</dt>
+                    <dd class="col-sm-9">{{ endpoint.last_up.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                    {% endif %}
+
+                    {% if endpoint.status == 'down' and endpoint.consecutive_failures > 0 %}
+                    <dt class="col-sm-3">Failures:</dt>
+                    <dd class="col-sm-9"><span class="badge bg-danger">{{ endpoint.consecutive_failures }}
+                            consecutive</span></dd>
+                    {% endif %}
+                </dl>
+
+                {% if endpoint.description %}
+                <h5 class="mt-3">Description</h5>
+                <p>{{ endpoint.description }}</p>
+                {% endif %}
+
+                <h5 class="mt-3">Monitoring Configuration</h5>
+                <pre class="bg-light p-3 rounded"><code>{{ endpoint.monitor_config | tojson(indent=2) }}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body d-grid gap-2">
+                <form method="post" action="/endpoints/{{ endpoint.id }}/check">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-clockwise"></i> Check Now
+                    </button>
+                </form>
+
+                {% if endpoint.documentation_url %}
+                <a href="{{ endpoint.documentation_url }}" class="btn btn-outline-primary">
+                    <i class="bi bi-book"></i> View Documentation
+                </a>
+                {% endif %}
+
+                {% if work_item %}
+                <a href="/work/{{ work_item.id }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-file-text"></i> View Work Item
+                </a>
+                {% endif %}
+
+                <a href="/endpoints" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Endpoints
+                </a>
+            </div>
+        </div>
+
+        <div class="card mt-3 border-info">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-info-circle"></i> Status Information
+            </div>
+            <div class="card-body small">
+                {% if endpoint.status == 'up' %}
+                <p class="mb-0"><i class="bi bi-check-circle text-success"></i> Endpoint is responding normally.</p>
+                {% elif endpoint.status == 'down' %}
+                <p class="mb-2"><i class="bi bi-x-circle text-danger"></i> Endpoint is not responding.</p>
+                <p class="mb-0"><strong>Troubleshooting:</strong> Check documentation for common issues.</p>
+                {% else %}
+                <p class="mb-0"><i class="bi bi-question-circle text-secondary"></i> Endpoint has not been checked yet.
+                    Click "Check Now" to test.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

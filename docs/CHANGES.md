@@ -3,6 +3,12 @@
 All changes are logged here. These are auto-generated using the Merge & Complete feature.
 
 
+
+## 2025-11-23 - Gavin Wallis - New Platform Feature
+- Add endpoint model
+Add endpoint wizard page
+Add Endpoint Landing page
+Add Endpoint Detail page
 ## 2025-11-23 - Gavin Wallis - Platform Feature Changes
 - Change the work item attributes to include category and type for improved Change Log formatting.
 ## 2025-11-23 - Gavin Wallis - Documentation Changes
