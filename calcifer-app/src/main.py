@@ -203,6 +203,170 @@ async def update_notes(
     
     return RedirectResponse(url=f"/work/{work_id}", status_code=303)
 
+@app.get("/work/{work_id}/commit", response_class=HTMLResponse)
+async def commit_form(request: Request, work_id: int, db: Session = Depends(get_db)):
+    """Show form to commit changes with CHANGES.md update."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    # Get current git status
+    git_status = git_manager.get_status()
+    
+    # Get author info
+    try:
+        author_name = git_manager.repo.config_reader().get_value("user", "name")
+        author_email = git_manager.repo.config_reader().get_value("user", "email")
+    except:
+        author_name = "Unknown"
+        author_email = ""
+    
+    return templates.TemplateResponse("commit_form.html", {
+        "request": request,
+        "work": work_item,
+        "git_status": git_status,
+        "author_name": author_name,
+        "author_email": author_email
+    })
+
+@app.post("/work/{work_id}/commit")
+async def commit_changes(
+    work_id: int,
+    commit_message: str = Form(...),
+    changes_entry: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Commit changes and update CHANGES.md."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    # Validation
+    if not commit_message.strip():
+        return RedirectResponse(
+            url=f"/work/{work_id}/commit?error=Commit message is required",
+            status_code=303
+        )
+    
+    if not changes_entry.strip():
+        return RedirectResponse(
+            url=f"/work/{work_id}/commit?error=CHANGES.md entry is required",
+            status_code=303
+        )
+    
+    try:
+        # Make sure we're on the right branch
+        if work_item.git_branch:
+            git_manager.checkout_branch(work_item.git_branch)
+        
+        # Update CHANGES.md
+        from datetime import datetime
+        changes_path = os.path.join(git_manager.repo_path, "docs", "CHANGES.md")
+        
+        # Read current content
+        with open(changes_path, 'r') as f:
+            current_content = f.read()
+        
+        # Prepare new entry
+        today = datetime.now().strftime('%Y-%m-%d')
+        author = git_manager.repo.config_reader().get_value("user", "name")
+        new_entry = f"\n## {today} - {author}\n- {changes_entry}\n"
+        
+        # Insert after header (find first ## and insert after it)
+        lines = current_content.split('\n')
+        insert_index = 0
+        for i, line in enumerate(lines):
+            if line.startswith('## '):
+                insert_index = i
+                break
+        
+        # If no existing entries, append
+        if insert_index == 0:
+            new_content = current_content + new_entry
+        else:
+            lines.insert(insert_index, new_entry.strip())
+            new_content = '\n'.join(lines)
+        
+        # Write updated CHANGES.md
+        with open(changes_path, 'w') as f:
+            f.write(new_content)
+        
+        # Stage all changes
+        git_manager.repo.git.add('-A')
+        
+        # Commit
+        commit_sha = git_manager.commit(commit_message)
+        
+        if commit_sha:
+            # Record commit in database
+            commit_record = models.Commit(
+                work_item_id=work_id,
+                commit_sha=commit_sha,
+                commit_message=commit_message
+            )
+            db.add(commit_record)
+            db.commit()
+            
+            return RedirectResponse(
+                url=f"/work/{work_id}?success=Changes committed successfully!",
+                status_code=303
+            )
+        else:
+            return RedirectResponse(
+                url=f"/work/{work_id}/commit?error=Commit failed",
+                status_code=303
+            )
+            
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/work/{work_id}/commit?error=Error: {str(e)}",
+            status_code=303
+        )
+    
+@app.post("/work/{work_id}/delete")
+async def delete_work_item(work_id: int, db: Session = Depends(get_db)):
+    """Delete work item and its Git branch."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    branch_name = work_item.git_branch
+    
+    try:
+        # Delete Git branch if it exists
+        if branch_name:
+            try:
+                # Switch to main first
+                git_manager.checkout_branch("main")
+                
+                # Delete local branch
+                git_manager.repo.delete_head(branch_name, force=True)
+                
+                # Try to delete remote branch (if it exists)
+                try:
+                    git_manager.repo.git.push('origin', '--delete', branch_name)
+                except:
+                    pass  # Remote branch might not exist, that's ok
+                    
+            except Exception as e:
+                # Branch deletion failed, but continue with work item deletion
+                print(f"Branch deletion failed: {e}")
+        
+        # Delete work item from database (cascades to commits)
+        db.delete(work_item)
+        db.commit()
+        
+        return RedirectResponse(
+            url="/?success=Work item deleted successfully",
+            status_code=303
+        )
+        
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/work/{work_id}?error=Delete failed: {str(e)}",
+            status_code=303
+        )    
+
 @app.post("/work/{work_id}/complete")
 async def complete_work(work_id: int, db: Session = Depends(get_db)):
     """Mark work as complete - simple validation only."""

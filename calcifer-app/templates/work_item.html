@@ -61,12 +61,12 @@
                         <ul class="mb-0">
                             <li>✅ All checklist items completed</li>
                             <li>✅ Notes/documentation added</li>
-                            <li>✅ Git branch has commits</li>
-                            <li>✅ docs/CHANGES.md updated</li>
+                            <li>✅ Use "Commit Changes" button to commit with CHANGES.md</li>
+                            <li>✅ Git branch has at least one commit</li>
                         </ul>
                         <hr>
                         <p class="small mb-0 text-muted">
-                            Click "Merge & Complete" when ready - it validates all requirements automatically.
+                            Use the "Commit Changes" button to stage all changes and update CHANGES.md automatically.
                         </p>
                     </div>
                 </div>
@@ -143,6 +143,14 @@
             <div class="card-header">Actions</div>
             <div class="card-body d-grid gap-2">
                 {% if work.status != 'complete' %}
+                <!-- Commit Changes -->
+                <a href="/work/{{ work.id }}/commit" class="btn btn-primary">
+                    <i class="bi bi-git"></i> Commit Changes
+                </a>
+                <small class="text-muted">Stage all changes and update CHANGES.md</small>
+
+                <hr>
+
                 <!-- Primary Action: Merge & Complete -->
                 <form method="post" action="/work/{{ work.id }}/merge-and-complete">
                     <button type="submit" class="btn btn-success w-100">
@@ -157,39 +165,29 @@
                         <li>Mark work complete</li>
                     </ul>
                 </div>
-
-                <hr>
-
-                <!-- Alternative: Just merge without completing -->
-                {% if not branch_merged %}
-                <form method="post" action="/work/{{ work.id }}/merge">
-                    <button type="submit" class="btn btn-outline-warning w-100">
-                        <i class="bi bi-git"></i> Merge Only (Don't Complete)
-                    </button>
-                </form>
-                <small class="text-muted">Use this if you want to merge but continue working</small>
-                {% endif %}
-
-                {% if branch_merged %}
-                <div class="alert alert-success py-2 mb-0">
-                    <i class="bi bi-check-circle"></i> Branch already merged
-                </div>
-                <!-- Manual complete if already merged -->
-                <form method="post" action="/work/{{ work.id }}/complete">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-check-circle"></i> Mark Complete
-                    </button>
-                </form>
-                {% endif %}
                 {% else %}
                 <div class="alert alert-success mb-0">
                     <i class="bi bi-check-circle"></i> Work completed on {{ work.completed_date.strftime('%Y-%m-%d') }}
                 </div>
                 {% endif %}
 
+                <hr>
+
                 <a href="/" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Back to Control Panel
                 </a>
+
+                <!-- Delete Work Item -->
+                {% if work.status != 'complete' %}
+                <hr>
+                <form method="post" action="/work/{{ work.id }}/delete"
+                    onsubmit="return confirm('Delete this work item and its branch? This cannot be undone.');">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash"></i> Delete Work Item
+                    </button>
+                </form>
+                <small class="text-muted">Deletes work item and Git branch</small>
+                {% endif %}
             </div>
         </div>
 
@@ -202,13 +200,13 @@
                 <ol class="mb-0">
                     <li>Work on your feature branch</li>
                     <li>Document your work in Notes</li>
-                    <li>Update docs/CHANGES.md</li>
+                    <li>Use <strong>"Commit Changes"</strong> button to commit</li>
                     <li>Complete all checklist items</li>
                     <li>Click <strong>"Merge & Complete"</strong></li>
                 </ol>
                 <hr class="my-2">
                 <p class="mb-0 fst-italic">
-                    The button validates everything, merges your branch, and closes the work item automatically.
+                    The Commit button automatically updates CHANGES.md for you!
                 </p>
             </div>
         </div>

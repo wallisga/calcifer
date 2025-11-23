@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Commit Changes - {{ work.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <!-- Error Messages -->
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-exclamation-triangle"></i> Error:</strong><br>
+            {{ request.query_params.get('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-git"></i> Commit Changes - {{ work.title }}
+            </div>
+            <div class="card-body">
+                <!-- Git Status -->
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Current Git Status</h6>
+                    <p class="mb-1"><strong>Branch:</strong> <code>{{ git_status.branch }}</code></p>
+                    {% if git_status.modified_files %}
+                    <p class="mb-1"><strong>Modified files:</strong> {{ git_status.modified_files|length }}</p>
+                    <ul class="small mb-0">
+                        {% for file in git_status.modified_files[:10] %}
+                        <li><code>{{ file }}</code></li>
+                        {% endfor %}
+                        {% if git_status.modified_files|length > 10 %}
+                        <li class="text-muted">... and {{ git_status.modified_files|length - 10 }} more</li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
+                    {% if git_status.untracked_files %}
+                    <p class="mb-1 mt-2"><strong>Untracked files:</strong> {{ git_status.untracked_files|length }}</p>
+                    <ul class="small mb-0">
+                        {% for file in git_status.untracked_files[:10] %}
+                        <li><code>{{ file }}</code></li>
+                        {% endfor %}
+                        {% if git_status.untracked_files|length > 10 %}
+                        <li class="text-muted">... and {{ git_status.untracked_files|length - 10 }} more</li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
+                    {% if not git_status.modified_files and not git_status.untracked_files %}
+                    <p class="mb-0 text-success"><i class="bi bi-check-circle"></i> No changes to commit</p>
+                    {% endif %}
+                </div>
+
+                <!-- Commit Form -->
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Commit Message</strong> <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="commit_message"
+                            placeholder="Brief description of changes" required maxlength="200">
+                        <div class="form-text">Brief, descriptive message (max 200 characters)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>CHANGES.md Entry</strong> <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" name="changes_entry" rows="4"
+                            placeholder="What changed and why..." required maxlength="500"></textarea>
+                        <div class="form-text">
+                            This will be added to docs/CHANGES.md automatically (max 500 characters)
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong><i class="bi bi-exclamation-triangle"></i> This will:</strong>
+                        <ul class="mb-0">
+                            <li>Stage all modified and untracked files</li>
+                            <li>Update docs/CHANGES.md with your entry</li>
+                            <li>Create a Git commit</li>
+                            <li>Associate commit with this work item</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-git"></i> Commit Changes
+                        </button>
+                        <a href="/work/{{ work.id }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card mt-3 border-info">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-lightbulb"></i> Tips
+            </div>
+            <div class="card-body">
+                <ul class="mb-0 small">
+                    <li>Commit often - small, focused commits are better than large ones</li>
+                    <li>Your CHANGES.md entry helps future you understand what changed</li>
+                    <li>The commit will be shown in this work item's commit history</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
