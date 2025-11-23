@@ -13,8 +13,14 @@ from pathlib import Path
 
 from . import models, schemas
 from .database import engine, get_db, init_db
-from .git_integration import GitManager
-from .integrations.monitoring import monitoring, MonitoringIntegration
+from .core import (
+    work_module,
+    service_catalog_module,
+    documentation_module,
+    git_module,
+    settings_module
+)
+from .integrations import monitoring, endpoint_module
 
 # Initialize database
 models.Base.metadata.create_all(bind=engine)
@@ -25,9 +31,6 @@ app = FastAPI(title="Calcifer", version="1.0.0")
 # Static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-# Git manager
-git_manager = GitManager(repo_path=os.getenv("REPO_PATH", ".."))
 
 # ============================================================================
 # HTML ROUTES (UI)
@@ -47,7 +50,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
     ).order_by(models.WorkItem.completed_date.desc()).limit(5).all()
     
     # Get git status
-    git_status = git_manager.get_status()
+    git_status = git_module.get_status()
     
     # Get recent changes
     recent_changes = db.query(models.ChangeLog).order_by(
@@ -96,7 +99,7 @@ async def create_work(
     work_item.git_branch = branch_name
     
     # Create Git branch
-    git_manager.create_branch(branch_name, checkout=True)
+    git_module.create_branch(branch_name, checkout=True)
     
     # Initialize checklist based on category and action
     if category == "platform_feature":
@@ -225,12 +228,12 @@ async def work_detail(request: Request, work_id: int, db: Session = Depends(get_
     # Get commits from Git branch (newer approach - shows real branch commits)
     branch_commits = []
     if work_item.git_branch:
-        branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+        branch_commits = git_module.get_branch_commits(work_item.git_branch)
     
     # Get branch merge status
     branch_merged = False
     if work_item.git_branch:
-        branch_merged = git_manager.is_branch_merged(work_item.git_branch)
+        branch_merged = git_module.is_branch_merged(work_item.git_branch)
         work_item.branch_merged = branch_merged
         db.commit()
     
@@ -283,12 +286,12 @@ async def commit_form(request: Request, work_id: int, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Work item not found")
     
     # Get current git status
-    git_status = git_manager.get_status()
+    git_status = git_module.get_status()
     
     # Get author info
     try:
-        author_name = git_manager.repo.config_reader().get_value("user", "name")
-        author_email = git_manager.repo.config_reader().get_value("user", "email")
+        author_name = git_module.repo.config_reader().get_value("user", "name")
+        author_email = git_module.repo.config_reader().get_value("user", "email")
     except:
         author_name = "Unknown"
         author_email = ""
@@ -329,15 +332,15 @@ async def commit_changes(
     try:
         # Make sure we're on the right branch
         if work_item.git_branch:
-            git_manager.checkout_branch(work_item.git_branch)
+            git_module.checkout_branch(work_item.git_branch)
         
         # Update CHANGES.md
         from datetime import datetime
-        changes_path = os.path.join(git_manager.repo_path, "docs", "CHANGES.md")
+        changes_path = os.path.join(git_module.repo_path, "docs", "CHANGES.md")
         
 # Prepare new entry with proper formatting
         today = datetime.now().strftime('%Y-%m-%d')
-        author = git_manager.repo.config_reader().get_value("user", "name")
+        author = git_module.repo.config_reader().get_value("user", "name")
         
         # Get work type for the entry
         work_type_display = work_item.full_type if hasattr(work_item, 'full_type') else work_item.work_type
@@ -366,10 +369,10 @@ async def commit_changes(
             f.writelines(lines)
         
         # Stage all changes
-        git_manager.repo.git.add('-A')
+        git_module.repo.git.add('-A')
         
         # Commit
-        commit_sha = git_manager.commit(commit_message)
+        commit_sha = git_module.commit(commit_message)
         
         if commit_sha:
             # Record commit in database
@@ -411,14 +414,14 @@ async def delete_work_item(work_id: int, db: Session = Depends(get_db)):
         if branch_name:
             try:
                 # Switch to main first
-                git_manager.checkout_branch("main")
+                git_module.checkout_branch("main")
                 
                 # Delete local branch
-                git_manager.repo.delete_head(branch_name, force=True)
+                git_module.repo.delete_head(branch_name, force=True)
                 
                 # Try to delete remote branch (if it exists)
                 try:
-                    git_manager.repo.git.push('origin', '--delete', branch_name)
+                    git_module.repo.git.push('origin', '--delete', branch_name)
                 except:
                     pass  # Remote branch might not exist, that's ok
                     
@@ -489,7 +492,7 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
         )
     
     # Check if already merged
-    if git_manager.is_branch_merged(work_item.git_branch):
+    if git_module.is_branch_merged(work_item.git_branch):
         work_item.branch_merged = True
         db.commit()
         return RedirectResponse(
@@ -498,14 +501,14 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
         )
     
     # VALIDATION: Check if CHANGES.md was updated
-    if not git_manager.check_changes_md_updated():
+    if not git_module.check_changes_md_updated():
         return RedirectResponse(
             url=f"/work/{work_id}?error=Cannot merge: docs/CHANGES.md not updated in this branch",
             status_code=303
         )
     
     # VALIDATION: Check if branch has commits
-    branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+    branch_commits = git_module.get_branch_commits(work_item.git_branch)
     if not branch_commits:
         return RedirectResponse(
             url=f"/work/{work_id}?error=Cannot merge: branch has no commits",
@@ -513,7 +516,7 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
         )
     
     # Attempt merge
-    success, result = git_manager.merge_branch(work_item.git_branch)
+    success, result = git_module.merge_branch(work_item.git_branch)
     
     if success:
         # Update work item
@@ -552,13 +555,13 @@ async def merge_and_complete(work_id: int, db: Session = Depends(get_db)):
     
     # Check 3: Branch has commits?
     if work_item.git_branch:
-        branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+        branch_commits = git_module.get_branch_commits(work_item.git_branch)
         if not branch_commits:
             errors.append("Branch has no commits")
     
     # Check 4: CHANGES.md updated?
     if work_item.git_branch:
-        if not git_manager.check_changes_md_updated():
+        if not git_module.check_changes_md_updated():
             errors.append("docs/CHANGES.md not updated in this branch")
     
     # If validation fails, stop here
@@ -571,11 +574,11 @@ async def merge_and_complete(work_id: int, db: Session = Depends(get_db)):
     
     # MERGE PHASE
     # Check if already merged
-    if git_manager.is_branch_merged(work_item.git_branch):
+    if git_module.is_branch_merged(work_item.git_branch):
         work_item.branch_merged = True
     else:
         # Attempt merge
-        success, result = git_manager.merge_branch(work_item.git_branch)
+        success, result = git_module.merge_branch(work_item.git_branch)
         
         if not success:
             return RedirectResponse(
@@ -670,187 +673,15 @@ async def create_endpoint(
     description: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    """Create endpoint with monitoring, docs, and work item."""
-    
-    # 1. Create work item
-    work_item = models.WorkItem(
-        title=f"Add monitoring endpoint: {name}",
-        category="service",
-        action_type="new",
-        description=f"Create monitoring endpoint for {endpoint_type} target: {target}",
-        status="planning"
+    """Create new monitored endpoint."""
+    work_id, success_msg = endpoint_module.create_endpoint_with_work_item(
+        db, name, endpoint_type, target, port, check_interval, description
     )
     
-    # Generate branch
-    branch_name = f"service/new/endpoint-{name.lower().replace(' ', '-')}-{datetime.now().strftime('%Y%m%d')}"
-    work_item.git_branch = branch_name
-    git_manager.create_branch(branch_name, checkout=True)
-    
-    # Checklist for endpoint creation
-    work_item.checklist = [
-        {"item": "Define endpoint details", "done": True},
-        {"item": "Create documentation", "done": True},
-        {"item": "Configure monitoring check", "done": True},
-        {"item": "Commit endpoint configuration", "done": True},  # NOW AUTO-DONE
-        {"item": "Verify endpoint is reachable", "done": False}  # Will be set based on check
-    ]
-    
-    db.add(work_item)
-    db.commit()
-    db.refresh(work_item)
-    
-    # 2. Create endpoint entry
-    endpoint = models.Endpoint(
-        name=name,
-        endpoint_type=endpoint_type,
-        target=target,
-        port=port,
-        check_interval=check_interval,
-        description=description,
-        work_item_id=work_item.id,
-        status="unknown"  # Will be checked after setup
+    return RedirectResponse(
+        url=f"/work/{work_id}?success={success_msg}",
+        status_code=303
     )
-    
-    # 3. Generate documentation
-    doc_content = generate_endpoint_documentation(name, endpoint_type, target, port, description)
-    doc_filename = f"endpoint-{name.lower().replace(' ', '-')}.md"
-    doc_path = os.path.join(git_manager.repo_path, "docs", doc_filename)
-    
-    # Create docs directory if doesn't exist
-    os.makedirs(os.path.dirname(doc_path), exist_ok=True)
-    
-    with open(doc_path, 'w') as f:
-        f.write(doc_content)
-    
-    endpoint.documentation_url = f"/docs-viewer/{doc_filename}"
-    
-    # 4. Generate monitoring config (placeholder for now)
-    monitor_config = {
-        "check_type": endpoint_type,
-        "target": target,
-        "port": port,
-        "interval": check_interval,
-        "timeout": 5,
-        "retries": 3
-    }
-    endpoint.monitor_config = monitor_config
-    
-    db.add(endpoint)
-    db.commit()
-    db.refresh(endpoint)  # ADD THIS
-    
-    # 5. AUTO-COMMIT the endpoint creation
-    commit_message = f"Add monitoring endpoint: {name}"
-    
-    # Update CHANGES.md
-    changes_path = os.path.join(git_manager.repo_path, "docs", "CHANGES.md")
-    today = datetime.now().strftime('%Y-%m-%d')
-    try:
-        author = git_manager.repo.config_reader().get_value("user", "name")
-    except:
-        author = "System"
-    
-    # Get work type display
-    work_type_display = "New Service"  # Since it's service/new category
-    
-    # Format changelog entry
-    changes_entry = f"Add monitoring endpoint: {name} ({endpoint_type} - {target})"
-    new_entry = f"## {today} - {author} - {work_type_display}\n- {changes_entry}\n"
-    
-    # Read current CHANGES.md
-    with open(changes_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Find insertion point (after header, before first ## entry)
-    insert_index = len(lines)
-    for i, line in enumerate(lines):
-        if i > 0 and line.startswith('## '):
-            insert_index = i
-            break
-    
-    # Insert with proper spacing
-    lines.insert(insert_index, '\n')
-    lines.insert(insert_index + 1, new_entry)
-    
-    # Write updated CHANGES.md
-    with open(changes_path, 'w') as f:
-        f.writelines(lines)
-    
-    # Stage CHANGES.md too
-    git_manager.stage_files(['docs/CHANGES.md', f'docs/{doc_filename}'])
-    
-    # Perform the commit
-    commit_sha = git_manager.commit(commit_message)
-    
-    # Record commit in database
-    if commit_sha:
-        commit_record = models.Commit(
-            work_item_id=work_item.id,
-            commit_sha=commit_sha,
-            commit_message=commit_message
-        )
-        db.add(commit_record)
-    
-    # 5.6. PERFORM INITIAL CHECK
-    is_up = perform_endpoint_check(endpoint)
-    endpoint.last_check = datetime.utcnow()
-    if is_up:
-        endpoint.status = "up"
-        endpoint.last_up = datetime.utcnow()
-        endpoint.consecutive_failures = 0
-    else:
-        endpoint.status = "down"
-        endpoint.last_down = datetime.utcnow()
-        endpoint.consecutive_failures = 1
-    db.commit()
-    
-    # 6. Update work item notes
-    work_item.notes = f"""# Endpoint: {name}
-
-**Type:** {endpoint_type}
-**Target:** {target}
-{'**Port:** ' + str(port) if port else ''}
-**Check Interval:** {check_interval}s
-**Initial Status:** {'✅ UP' if is_up else '❌ DOWN'}
-
-## Generated Files
-- Documentation: `docs/{doc_filename}` ✅ Committed
-- CHANGES.md: Updated ✅ Committed
-
-## Configuration
-```json
-{json.dumps(monitor_config, indent=2)}
-```
-
-## Initial Check Results
-- Performed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-- Status: {'UP - endpoint is reachable' if is_up else 'DOWN - endpoint is not reachable'}
-
-## Commit Details
-- Commit: {commit_sha[:7] if commit_sha else 'N/A'}
-- Message: "{commit_message}"
-- CHANGES.md: Updated automatically
-
-## Next Steps
-1. ✅ Documentation created and committed
-2. ✅ Monitoring configured
-3. {'✅ Endpoint verified as UP' if is_up else '❌ Investigate connectivity issue'}
-4. Review the work item and mark complete when satisfied
-"""
-    
-    # Auto-complete checklist items that wizard already did
-    work_item.checklist[0]["done"] = True  # Define endpoint details
-    work_item.checklist[1]["done"] = True  # Create documentation
-    work_item.checklist[2]["done"] = True  # Configure monitoring check
-    work_item.checklist[3]["done"] = True  # Commit configuration (just did it!)
-    work_item.checklist[4]["done"] = is_up  # Verify endpoint is reachable (only if UP)
-    # checklist[4] stays False - user needs to commit
-    
-    db.commit()
-    
-    # 7. Redirect to work item
-    status_msg = "Endpoint created and is UP! ✅" if is_up else "Endpoint created but is DOWN ❌ - check connectivity"
-    return RedirectResponse(url=f"/work/{work_item.id}?success={status_msg}", status_code=303)
 
 @app.get("/endpoints/{endpoint_id}", response_class=HTMLResponse)
 async def endpoint_detail(request: Request, endpoint_id: int, db: Session = Depends(get_db)):
@@ -944,12 +775,12 @@ async def list_services(db: Session = Depends(get_db)):
 @app.get("/api/git/status")
 async def git_status():
     """Get Git repository status."""
-    return git_manager.get_status()
+    return git_module.get_status()
 
 @app.get("/api/git/commits")
 async def recent_commits(limit: int = 10):
     """Get recent commits."""
-    return git_manager.get_recent_commits(limit)
+    return git_module.get_recent_commits(limit)
 
 # Health check
 @app.get("/health")
@@ -964,7 +795,7 @@ async def health():
 @app.get("/docs-viewer", response_class=HTMLResponse)
 async def docs_list(request: Request):
     """List all documentation files."""
-    docs_path = Path(git_manager.repo_path) / "docs"
+    docs_path = Path(git_module.repo_path) / "docs"
     
     if not docs_path.exists():
         docs_path.mkdir(parents=True, exist_ok=True)
@@ -975,7 +806,7 @@ async def docs_list(request: Request):
         md_files.append({
             "name": file_path.name,
             "title": file_path.stem.replace("_", " ").title(),
-            "path": str(file_path.relative_to(git_manager.repo_path))
+            "path": str(file_path.relative_to(git_module.repo_path))
         })
     
     md_files.sort(key=lambda x: x["name"])
@@ -988,7 +819,7 @@ async def docs_list(request: Request):
 @app.get("/docs-viewer/{doc_name}", response_class=HTMLResponse)
 async def view_doc(request: Request, doc_name: str):
     """View a specific documentation file."""
-    docs_path = Path(git_manager.repo_path) / "docs" / doc_name
+    docs_path = Path(git_module.repo_path) / "docs" / doc_name
     
     if not docs_path.exists() or not doc_name.endswith(".md"):
         raise HTTPException(status_code=404, detail="Documentation not found")
