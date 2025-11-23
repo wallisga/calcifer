@@ -3,6 +3,11 @@
 All infrastructure changes are logged here.
 
 ## 2025-11-23 - Gavin Wallis
+- Update Roadmap Docs
+Update README
+Update Setup Guide
+New Feature - Deletion of Completed Items
+## 2025-11-23 - Gavin Wallis
 - Added new commit feature that adds changes to docs
 Add feature to delete work items that are stale.
 ## 2025-11-22 - Initial Setup

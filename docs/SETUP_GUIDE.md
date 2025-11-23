@@ -340,7 +340,19 @@ Test each feature:
   - Description: "Testing the Calcifer application"
 - [ ] Verify work item appears on home page
 - [ ] Click on work item - detail page loads
-- [ ] Toggle checklist items - they update
+- [ ] Toggle checklist items - they save and persist
+- [ ] Add notes in the notes section - saves correctly
+- [ ] Click "Commit Changes" button:
+  - Shows current Git status
+  - Fill out commit message and CHANGES.md entry
+  - Commits successfully
+- [ ] Verify commit appears in work item commit list
+- [ ] Complete all checklist items
+- [ ] Click "Merge & Complete":
+  - Validates all requirements
+  - Merges branch to main
+  - Completes work item
+  - Redirects to home with success message
 - [ ] Go to Services page - empty state shows
 - [ ] Click "Add Service" - form appears
 - [ ] Create test service:
@@ -350,7 +362,7 @@ Test each feature:
   - URL: "http://localhost:8000"
 - [ ] Verify service appears in catalog
 - [ ] Click "Docs" in navbar
-- [ ] See PREREQUISITES.md and CHANGES.md listed
+- [ ] See PREREQUISITES.md, SETUP_GUIDE.md, CHANGES.md, ROADMAP.md
 - [ ] Click to view rendered documentation
 
 ---
