@@ -5,6 +5,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Service
+- This will be logged as an endpoint change but handles how changes are updated in the endpoint wizard feature.
 ## 2025-11-23 - Gavin Wallis - New Platform Feature
 - Ensure endpoints are automatically checked after creation.
 Update checklist

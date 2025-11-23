@@ -687,11 +687,11 @@ async def create_endpoint(
     
     # Checklist for endpoint creation
     work_item.checklist = [
-        {"item": "Define endpoint details (done by wizard)", "done": True},
-        {"item": "Create documentation (done automatically)", "done": True},
-        {"item": "Configure monitoring check (done automatically)", "done": True},
-        {"item": "Verify endpoint is reachable", "done": False},  # Will be set based on check
-        {"item": "Review and commit endpoint configuration", "done": False}
+        {"item": "Define endpoint details", "done": True},
+        {"item": "Create documentation", "done": True},
+        {"item": "Configure monitoring check", "done": True},
+        {"item": "Commit endpoint configuration", "done": True},  # NOW AUTO-DONE
+        {"item": "Verify endpoint is reachable", "done": False}  # Will be set based on check
     ]
     
     db.add(work_item)
@@ -738,10 +738,62 @@ async def create_endpoint(
     db.commit()
     db.refresh(endpoint)  # ADD THIS
     
-    # 5. Add files to git
+# 5. Add files to git
     git_manager.stage_files([f"docs/{doc_filename}"])
     
-    # 5.5. PERFORM INITIAL CHECK
+    # 5.5. AUTO-COMMIT the endpoint creation
+    commit_message = f"Add monitoring endpoint: {name}"
+    
+    # Update CHANGES.md
+    changes_path = os.path.join(git_manager.repo_path, "docs", "CHANGES.md")
+    today = datetime.now().strftime('%Y-%m-%d')
+    try:
+        author = git_manager.repo.config_reader().get_value("user", "name")
+    except:
+        author = "System"
+    
+    # Get work type display
+    work_type_display = "New Service"  # Since it's service/new category
+    
+    # Format changelog entry
+    changes_entry = f"Add monitoring endpoint: {name} ({endpoint_type} - {target})"
+    new_entry = f"## {today} - {author} - {work_type_display}\n- {changes_entry}\n"
+    
+    # Read current CHANGES.md
+    with open(changes_path, 'r') as f:
+        lines = f.readlines()
+    
+    # Find insertion point (after header, before first ## entry)
+    insert_index = len(lines)
+    for i, line in enumerate(lines):
+        if i > 0 and line.startswith('## '):
+            insert_index = i
+            break
+    
+    # Insert with proper spacing
+    lines.insert(insert_index, '\n')
+    lines.insert(insert_index + 1, new_entry)
+    
+    # Write updated CHANGES.md
+    with open(changes_path, 'w') as f:
+        f.writelines(lines)
+    
+    # Stage CHANGES.md too
+    git_manager.stage_files(['docs/CHANGES.md'])
+    
+    # Perform the commit
+    commit_sha = git_manager.commit(commit_message)
+    
+    # Record commit in database
+    if commit_sha:
+        commit_record = models.Commit(
+            work_item_id=work_item.id,
+            commit_sha=commit_sha,
+            commit_message=commit_message
+        )
+        db.add(commit_record)
+    
+    # 5.6. PERFORM INITIAL CHECK
     is_up = perform_endpoint_check(endpoint)
     endpoint.last_check = datetime.utcnow()
     if is_up:
@@ -764,8 +816,8 @@ async def create_endpoint(
 **Initial Status:** {'✅ UP' if is_up else '❌ DOWN'}
 
 ## Generated Files
-- Documentation: `docs/{doc_filename}`
-- Monitoring config: Stored in database
+- Documentation: `docs/{doc_filename}` ✅ Committed
+- CHANGES.md: Updated ✅ Committed
 
 ## Configuration
 ```json
@@ -776,18 +828,24 @@ async def create_endpoint(
 - Performed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 - Status: {'UP - endpoint is reachable' if is_up else 'DOWN - endpoint is not reachable'}
 
+## Commit Details
+- Commit: {commit_sha[:7] if commit_sha else 'N/A'}
+- Message: "{commit_message}"
+- CHANGES.md: Updated automatically
+
 ## Next Steps
-1. Review documentation
-2. Commit changes
-3. {'Investigate connectivity issue' if not is_up else 'Verify monitoring configuration'}
-4. Merge and complete
+1. ✅ Documentation created and committed
+2. ✅ Monitoring configured
+3. {'✅ Endpoint verified as UP' if is_up else '❌ Investigate connectivity issue'}
+4. Review the work item and mark complete when satisfied
 """
     
     # Auto-complete checklist items that wizard already did
     work_item.checklist[0]["done"] = True  # Define endpoint details
     work_item.checklist[1]["done"] = True  # Create documentation
     work_item.checklist[2]["done"] = True  # Configure monitoring check
-    work_item.checklist[3]["done"] = is_up  # Verify endpoint is reachable (only if UP)
+    work_item.checklist[3]["done"] = True  # Commit configuration (just did it!)
+    work_item.checklist[4]["done"] = is_up  # Verify endpoint is reachable (only if UP)
     # checklist[4] stays False - user needs to commit
     
     db.commit()
