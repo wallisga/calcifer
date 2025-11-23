@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Settings - Calcifer{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <h2><i class="bi bi-gear"></i> Settings</h2>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-sliders"></i> General Settings
+            </div>
+            <div class="card-body">
+                <form method="post" action="/settings/update">
+                    <div class="mb-3">
+                        <label class="form-label">Repository Path</label>
+                        <input type="text" class="form-control" name="repo_path" value="{{ repo_path }}" readonly>
+                        <div class="form-text">Location of your infrastructure repository</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Database Path</label>
+                        <input type="text" class="form-control" name="db_path" value="{{ db_path }}" readonly>
+                        <div class="form-text">SQLite database location</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Git Author Name</label>
+                        <input type="text" class="form-control" name="git_author" value="{{ git_author }}" readonly>
+                        <div class="form-text">From Git configuration</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-puzzle"></i> Active Integrations
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-git text-primary"></i>
+                            <strong>Git Integration</strong>
+                            <br>
+                            <small class="text-muted">Automatic branch management and commits</small>
+                        </div>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-broadcast text-primary"></i>
+                            <strong>Monitoring</strong>
+                            <br>
+                            <small class="text-muted">Endpoint health checks</small>
+                        </div>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> System Information
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Calcifer Version:</dt>
+                    <dd class="col-sm-9">1.0.0-alpha</dd>
+
+                    <dt class="col-sm-3">Database Version:</dt>
+                    <dd class="col-sm-9">SQLite (SQLAlchemy)</dd>
+
+                    <dt class="col-sm-3">Python Version:</dt>
+                    <dd class="col-sm-9">{{ python_version }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

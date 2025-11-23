@@ -10,6 +10,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Platform Feature
+- Add core services and settings and integration creation
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Docs and services are core while git and monitoring is integration for now.
 ## 2025-11-23 - Gavin Wallis - New Platform Feature

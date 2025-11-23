@@ -1,111 +1,172 @@
-# Calcifer
+# Calcifer Integrations
 
-Infrastructure platform powering your continuously changing systems
+This directory contains integrations that extend Calcifer's functionality with external tools and services.
 
-## 📚 Documentation
+## Core Integrations
 
-- **[Prerequisites](docs/PREREQUISITES.md)** - System requirements and dependencies (READ FIRST)
-- **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete step-by-step setup instructions
-- **[Roadmap](docs/ROADMAP.md)** - Current and planned features
-- **[Change Log](docs/CHANGES.md)** - All infrastructure changes
+### Git (`git.py`)
+**Status:** ✅ Active (Core Integration)  
+**Purpose:** Git operations and version control
 
-## Quick Start
+**Features:**
+- Branch management (create, checkout, merge)
+- Commit operations with author tracking
+- Branch status and merge detection
+- CHANGES.md validation
+- Repository status queries
 
-### Before You Begin
-Review [docs/PREREQUISITES.md](docs/PREREQUISITES.md) to ensure you have:
-- Git installed and configured
-- Python 3.11+
-- VS Code (with WSL extension if on Windows)
-- WSL2 with Ubuntu 22.04 (Windows only)
+**Usage:**
+```python
+from integrations import git_manager
 
-### Local Development
+# Create and checkout branch
+git_manager.create_branch("feature/my-feature", checkout=True)
 
-1. Set up Python environment:
-```bash
-   cd calcifer-app
-   python3 -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+# Get repository status
+status = git_manager.get_status()
+
+# Check if branch is merged
+is_merged = git_manager.is_branch_merged("feature/my-feature")
+
+# Commit changes
+commit_sha = git_manager.commit("Add new feature")
 ```
 
-2. Run the application:
-```bash
-   uvicorn src.main:app --reload
+---
+
+### Monitoring (`monitoring.py`)
+**Status:** ✅ Active  
+**Purpose:** Synthetic monitoring and endpoint health checks
+
+**Features:**
+- ICMP ping checks
+- TCP port connectivity
+- HTTP/HTTPS availability
+- Automatic status tracking
+- Documentation generation
+
+**Usage:**
+```python
+from integrations import monitoring
+
+# Check endpoint
+is_up, error = monitoring.check_endpoint(endpoint)
+
+# Update endpoint status in database
+is_up = monitoring.update_endpoint_status(endpoint, db)
 ```
 
-3. Open browser: http://localhost:8000
+**Future Enhancements:**
+- WMI checks for Windows hosts
+- SNMP checks for network devices
+- Custom application instrumentation
+- Integration with Uptime Kuma API
 
-### Using VS Code
+---
 
-1. Open this folder in VS Code
-2. Press `Ctrl+Shift+P` → "Run Task" → "Setup Python Virtual Environment"
-3. Press `Ctrl+Shift+P` → "Run Task" → "Run Calcifer (Development)"
-4. Press `Ctrl+Shift+P` → "Run Task" → "Open Calcifer Dashboard"
+## Future Integrations
 
-### Using Docker
-```bash
-cd calcifer-app
-docker-compose up -d
+### Uptime Kuma
+**Status:** 📋 Planned  
+**Purpose:** Integration with Uptime Kuma monitoring platform
+
+**Features:**
+- Sync endpoints to Uptime Kuma
+- Pull monitoring data from Uptime Kuma
+- Unified status display
+
+---
+
+### Grafana
+**Status:** 📋 Planned  
+**Purpose:** Dashboard and metrics visualization
+
+**Features:**
+- Embed Grafana dashboards in Calcifer
+- Link services to Grafana panels
+- Unified monitoring view
+
+---
+
+### Notifications
+**Status:** 📋 Planned  
+**Purpose:** Alert delivery via multiple channels
+
+**Features:**
+- Slack notifications
+- Discord webhooks
+- Email alerts
+- Work item notifications
+
+---
+
+### Backups
+**Status:** 📋 Planned  
+**Purpose:** Automated backup management
+
+**Features:**
+- Database backups
+- Configuration backups
+- Remote storage (S3, etc.)
+- Restore capabilities
+
+---
+
+## Integration Guidelines
+
+### Structure
+
+Each integration should be self-contained in its own file:
+```python
+class SomeIntegration:
+    """Integration description."""
+    
+    def __init__(self, config: dict = None):
+        """Initialize with optional configuration."""
+        pass
+    
+    def check_connectivity(self) -> bool:
+        """Test if integration is working."""
+        pass
+    
+    # Integration-specific methods
 ```
 
-Access at: http://localhost:8000
+### Configuration
 
-## Repository Structure
+Integrations should accept configuration via:
+1. Constructor arguments
+2. Environment variables
+3. Database settings (future)
+
+### Error Handling
+
+All integrations must handle errors gracefully and return meaningful error messages.
+
+### Documentation
+
+Each integration must have:
+- Docstrings for all public methods
+- Usage examples
+- Configuration documentation
+
+### Singleton Pattern
+
+For stateless integrations, provide a singleton instance:
+```python
+class MyIntegration:
+    # ... methods ...
+
+# Singleton for convenience
+my_integration = MyIntegration()
 ```
-calcifer/
-├── calcifer-app/         # Calcifer application
-│   ├── src/             # FastAPI application code
-│   ├── templates/       # Jinja2 HTML templates
-│   ├── static/          # CSS/JS assets
-│   └── data/            # SQLite database (gitignored)
-├── infrastructure/       # Deployed infrastructure configs
-│   ├── docker-compose/  # Docker Compose stacks
-│   ├── configs/         # Configuration files
-│   └── scripts/         # Automation scripts
-├── docs/                # Documentation and change logs
-└── .vscode/             # VS Code workspace settings
-```
 
-## Workflow
+## Adding New Integrations
 
-1. **Start New Work**: Use Calcifer dashboard to create work item
-2. **Work on Branch**: Automatic Git branch creation
-3. **Commit Changes**: Use UI button to commit with CHANGES.md
-4. **Complete Checklist**: Track progress with built-in checklists
-5. **Merge & Complete**: One button validates, merges, and closes work
-
-## Features
-
-- 🔥 **Work Item Tracking** - Never lose track of what you're working on
-- 📋 **Service Catalog** - Central registry of all deployed services
-- 🌿 **Git Integration** - Automatic branch management and merge workflow
-- 📝 **Enforced Documentation** - CHANGES.md updated via UI
-- 📊 **Built-in Docs Viewer** - Renders markdown beautifully
-- ✅ **Smart Checklists** - Task-specific guidance by work type
-- 💾 **Commit from UI** - Stage changes and update docs in one click
-- 🗑️ **Branch Cleanup** - Delete work items and branches together
-
-## Current Status
-
-**Phase**: Private development
-**Version**: 1.0.0-alpha
-**Database**: SQLite (stored in `calcifer-app/data/`)
-
-## Links
-
-- Calcifer Dashboard: http://localhost:8000
-- Documentation: http://localhost:8000/docs-viewer
-- Proxmox: https://proxmox-ip:8006 (when deployed)
-- Portainer: http://services-ip:9000 (when deployed)
-
-## Future Plans
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for upcoming features including:
-- Service monitoring integration
-- Backup automation
-- Multi-user support
-- Advanced reporting
-
-## License
-
-MIT (or your choice when going public)
+1. Create new file in `integrations/` directory
+2. Implement integration class
+3. Add singleton instance if stateless
+4. Export in `__init__.py`
+5. Update this README
+6. Add usage examples in docstrings
+7. Create work item in Calcifer to track implementation

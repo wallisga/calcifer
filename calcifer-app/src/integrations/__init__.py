@@ -5,7 +5,7 @@ This package contains optional integrations that extend Calcifer's functionality
 Each integration is self-contained and can be enabled/disabled independently.
 
 Available Integrations:
-- git: Git operations and version control
+- git: Git operations and version control (core integration)
 - monitoring: Synthetic monitoring and endpoint health checks
 
 Future Integrations:
@@ -15,7 +15,12 @@ Future Integrations:
 - backups: Automated backup management
 """
 
-from .git import GitIntegration
-from .monitoring import MonitoringIntegration
+from .git import GitManager, git_manager
+from .monitoring import MonitoringIntegration, monitoring
 
-__all__ = ['GitIntegration', 'MonitoringIntegration']
+__all__ = [
+    'GitManager',
+    'git_manager',
+    'MonitoringIntegration',
+    'monitoring'
+]

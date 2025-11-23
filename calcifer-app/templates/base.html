@@ -35,26 +35,55 @@
             content: "🔥 ";
         }
 
-        /* Style for integration menu items */
-        .nav-item.integration {
-            border-left: 3px solid var(--integration-color);
-            padding-left: 8px;
+        /* Core features - left aligned */
+        .nav-core {
+            margin-right: auto;
         }
 
+        /* Integrations - right aligned */
+        .nav-integrations {
+            margin-left: auto;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+            padding-left: 1rem;
+        }
+
+        /* Integration items styling */
         .nav-item.integration .nav-link {
             color: rgba(255, 255, 255, 0.85) !important;
+            border-left: 3px solid var(--integration-color);
+            padding-left: 0.75rem;
         }
 
         .nav-item.integration .nav-link:hover {
             color: rgba(255, 255, 255, 1) !important;
+            background-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* Separator between core and integrations */
-        .nav-separator {
-            width: 2px;
-            height: 30px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 0 15px;
+        /* Settings styling */
+        .nav-item.settings .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+
+        .nav-item.settings .nav-link:hover {
+            color: rgba(255, 255, 255, 1) !important;
+        }
+
+        /* Dropdown for integrations */
+        .dropdown-menu {
+            background-color: var(--primary-color);
+        }
+
+        .dropdown-item {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+
+        .dropdown-divider {
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
         .card {
@@ -127,15 +156,13 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                Calcifer
-            </a>
+            <a class="navbar-brand" href="/">Calcifer</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <!-- Core Features -->
+                <!-- Core Features (Left Aligned) -->
+                <ul class="navbar-nav nav-core">
                     <li class="nav-item">
                         <a class="nav-link" href="/work/new">
                             <i class="bi bi-plus-circle"></i> New Work
@@ -151,13 +178,15 @@
                             <i class="bi bi-book"></i> Docs
                         </a>
                     </li>
-
-                    <!-- Separator -->
-                    <li class="nav-item d-none d-lg-flex align-items-center">
-                        <div class="nav-separator"></div>
+                    <li class="nav-item settings">
+                        <a class="nav-link" href="/settings">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
                     </li>
+                </ul>
 
-                    <!-- Integrations -->
+                <!-- Integrations (Right Aligned) -->
+                <ul class="navbar-nav nav-integrations">
                     <li class="nav-item integration">
                         <a class="nav-link" href="/endpoints">
                             <i class="bi bi-broadcast"></i> Monitoring
@@ -167,6 +196,32 @@
                         <a class="nav-link" href="/git/status">
                             <i class="bi bi-git"></i> Git
                         </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="integrationsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-square"></i> Add Integration
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="integrationsDropdown">
+                            <li><a class="dropdown-item" href="/integrations/setup/notifications">
+                                    <i class="bi bi-bell"></i> Notifications
+                                </a></li>
+                            <li><a class="dropdown-item" href="/integrations/setup/backups">
+                                    <i class="bi bi-archive"></i> Backups
+                                </a></li>
+                            <li><a class="dropdown-item" href="/integrations/setup/grafana">
+                                    <i class="bi bi-graph-up"></i> Grafana
+                                </a></li>
+                            <li><a class="dropdown-item" href="/integrations/setup/uptime-kuma">
+                                    <i class="bi bi-activity"></i> Uptime Kuma
+                                </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="/integrations">
+                                    <i class="bi bi-list-ul"></i> View All Integrations
+                                </a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>

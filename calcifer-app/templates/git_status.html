@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Git Status - Calcifer{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2><i class="bi bi-git"></i> Git Status</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Repository Status
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Current Branch:</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-dark">{{ git_status.branch }}</span>
+                    </dd>
+
+                    <dt class="col-sm-3">Status:</dt>
+                    <dd class="col-sm-9">
+                        {% if git_status.is_dirty %}
+                        <span class="text-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Uncommitted changes
+                        </span>
+                        {% else %}
+                        <span class="text-success">
+                            <i class="bi bi-check-circle"></i> Clean working tree
+                        </span>
+                        {% endif %}
+                    </dd>
+
+                    {% if git_status.modified_files %}
+                    <dt class="col-sm-3">Modified Files:</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-warning">{{ git_status.modified_files|length }} files</span>
+                    </dd>
+                    {% endif %}
+
+                    {% if git_status.untracked_files %}
+                    <dt class="col-sm-3">Untracked Files:</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-secondary">{{ git_status.untracked_files|length }} files</span>
+                    </dd>
+                    {% endif %}
+                </dl>
+
+                {% if git_status.modified_files or git_status.untracked_files %}
+                <hr>
+                <h6>Changed Files:</h6>
+                <ul class="small">
+                    {% for file in git_status.modified_files[:10] %}
+                    <li><code>{{ file }}</code> <span class="badge bg-warning">M</span></li>
+                    {% endfor %}
+                    {% for file in git_status.untracked_files[:10] %}
+                    <li><code>{{ file }}</code> <span class="badge bg-secondary">?</span></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Recent Commits
+            </div>
+            <div class="card-body">
+                {% if recent_commits %}
+                <div class="list-group list-group-flush">
+                    {% for commit in recent_commits %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <code class="small">{{ commit.sha }}</code>
+                                <p class="mb-1">{{ commit.message }}</p>
+                                <small class="text-muted">
+                                    {{ commit.author }} • {{ commit.date.strftime('%Y-%m-%d %H:%M') }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No commits yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-branches"></i> Branches
+            </div>
+            <div class="card-body">
+                {% if branches %}
+                <div class="list-group list-group-flush">
+                    {% for branch in branches %}
+                    <div class="list-group-item px-0 py-2">
+                        {% if branch == git_status.branch %}
+                        <i class="bi bi-check-circle text-success"></i>
+                        <strong>{{ branch }}</strong>
+                        {% else %}
+                        {{ branch }}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No branches</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-lightbulb"></i> Git Tips
+            </div>
+            <div class="card-body small">
+                <ul class="mb-0">
+                    <li>Use work items to create branches automatically</li>
+                    <li>Commit from work item UI to update CHANGES.md</li>
+                    <li>Merge & Complete to finalize work</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -28,24 +28,7 @@ class ServicesCore:
         memory: Optional[str] = None,
         config_path: Optional[str] = None
     ) -> models.Service:
-        """
-        Create a new service entry in the catalog.
-        
-        Args:
-            db: Database session
-            name: Service name
-            service_type: Type (container, vm, bare_metal)
-            host: Host/VM where service runs
-            url: Optional service URL
-            description: Optional description
-            ports: Optional port mapping
-            cpu: Optional CPU allocation
-            memory: Optional memory allocation
-            config_path: Optional path to config in repo
-            
-        Returns:
-            Created service
-        """
+        """Create a new service entry in the catalog."""
         service = models.Service(
             name=name,
             service_type=service_type,
@@ -70,17 +53,7 @@ class ServicesCore:
         service_id: int,
         **kwargs
     ) -> Optional[models.Service]:
-        """
-        Update service attributes.
-        
-        Args:
-            db: Database session
-            service_id: Service ID
-            **kwargs: Attributes to update
-            
-        Returns:
-            Updated service or None if not found
-        """
+        """Update service attributes."""
         service = db.query(models.Service).filter(
             models.Service.id == service_id
         ).first()
@@ -102,16 +75,7 @@ class ServicesCore:
         db: Session,
         service_id: int
     ) -> bool:
-        """
-        Delete a service from the catalog.
-        
-        Args:
-            db: Database session
-            service_id: Service ID
-            
-        Returns:
-            True if deleted, False if not found
-        """
+        """Delete a service from the catalog."""
         service = db.query(models.Service).filter(
             models.Service.id == service_id
         ).first()
@@ -157,71 +121,3 @@ class ServicesCore:
         return db.query(models.Service).filter(
             models.Service.service_type == service_type
         ).order_by(models.Service.name).all()
-    
-    def add_dependency(
-        self,
-        db: Session,
-        service_id: int,
-        depends_on_id: int
-    ) -> bool:
-        """
-        Add a dependency relationship between services.
-        
-        Args:
-            db: Database session
-            service_id: Service that depends on another
-            depends_on_id: Service that is depended upon
-            
-        Returns:
-            True if added, False if services not found
-        """
-        service = self.get_service_by_id(db, service_id)
-        depends_on = self.get_service_by_id(db, depends_on_id)
-        
-        if not service or not depends_on:
-            return False
-        
-        # Add to depends_on list if not already there
-        if depends_on_id not in service.depends_on:
-            service.depends_on.append(depends_on_id)
-        
-        # Add to required_by list if not already there
-        if service_id not in depends_on.required_by:
-            depends_on.required_by.append(service_id)
-        
-        db.commit()
-        return True
-    
-    def remove_dependency(
-        self,
-        db: Session,
-        service_id: int,
-        depends_on_id: int
-    ) -> bool:
-        """
-        Remove a dependency relationship between services.
-        
-        Args:
-            db: Database session
-            service_id: Service that depends on another
-            depends_on_id: Service that is depended upon
-            
-        Returns:
-            True if removed, False if services not found
-        """
-        service = self.get_service_by_id(db, service_id)
-        depends_on = self.get_service_by_id(db, depends_on_id)
-        
-        if not service or not depends_on:
-            return False
-        
-        # Remove from depends_on list
-        if depends_on_id in service.depends_on:
-            service.depends_on.remove(depends_on_id)
-        
-        # Remove from required_by list
-        if service_id in depends_on.required_by:
-            depends_on.required_by.remove(service_id)
-        
-        db.commit()
-        return True

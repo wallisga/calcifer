@@ -1,35 +1,21 @@
 """
 Git Integration
 
-Provides Git repository operations and branch management.
-This is an integration rather than core feature - Calcifer can work without it,
-but Git integration enables automatic branch management and change tracking.
+Provides Git operations and version control for Calcifer.
+Manages branches, commits, merges, and repository operations.
 """
 
 import git
 import os
 from datetime import datetime
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple
 
 
-class GitIntegration:
-    """
-    Git integration for Calcifer.
-    
-    Manages Git operations for the infrastructure repository including:
-    - Branch creation and management
-    - Commit operations
-    - Merge operations
-    - Branch status tracking
-    """
+class GitManager:
+    """Manages Git operations for the infrastructure repository."""
     
     def __init__(self, repo_path: str = "."):
-        """
-        Initialize Git integration.
-        
-        Args:
-            repo_path: Path to Git repository
-        """
+        """Initialize Git manager with repository path."""
         self.repo_path = os.path.abspath(repo_path)
         try:
             self.repo = git.Repo(repo_path)
@@ -37,34 +23,12 @@ class GitIntegration:
             # If not a repo, initialize it
             self.repo = git.Repo.init(repo_path)
     
-    def check_connectivity(self) -> bool:
-        """
-        Test if Git integration is working.
-        
-        Returns:
-            True if Git repository is accessible
-        """
-        try:
-            _ = self.repo.git_dir
-            return True
-        except:
-            return False
-    
     def get_current_branch(self) -> str:
         """Get the name of the current branch."""
         return self.repo.active_branch.name
     
     def create_branch(self, branch_name: str, checkout: bool = True) -> bool:
-        """
-        Create a new branch and optionally check it out.
-        
-        Args:
-            branch_name: Name of the branch to create
-            checkout: Whether to checkout the new branch
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Create a new branch and optionally check it out."""
         try:
             new_branch = self.repo.create_head(branch_name)
             if checkout:
@@ -75,15 +39,7 @@ class GitIntegration:
             return False
     
     def checkout_branch(self, branch_name: str) -> bool:
-        """
-        Checkout an existing branch.
-        
-        Args:
-            branch_name: Name of the branch to checkout
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Checkout an existing branch."""
         try:
             self.repo.git.checkout(branch_name)
             return True
@@ -95,42 +51,8 @@ class GitIntegration:
         """Get list of all branches."""
         return [head.name for head in self.repo.heads]
     
-    def delete_branch(self, branch_name: str, force: bool = False) -> bool:
-        """
-        Delete a local branch.
-        
-        Args:
-            branch_name: Name of the branch to delete
-            force: Whether to force delete
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Can't delete current branch, switch to main first
-            if self.get_current_branch() == branch_name:
-                self.checkout_branch("main")
-            
-            self.repo.delete_head(branch_name, force=force)
-            
-            # Try to delete remote branch if it exists
-            try:
-                self.repo.git.push('origin', '--delete', branch_name)
-            except:
-                pass  # Remote branch might not exist
-            
-            return True
-        except git.GitCommandError as e:
-            print(f"Error deleting branch: {e}")
-            return False
-    
-    def get_status(self) -> Dict[str, any]:
-        """
-        Get repository status.
-        
-        Returns:
-            Dict with branch, is_dirty, and file lists
-        """
+    def get_status(self) -> dict:
+        """Get repository status."""
         return {
             "branch": self.get_current_branch(),
             "is_dirty": self.repo.is_dirty(),
@@ -140,15 +62,7 @@ class GitIntegration:
         }
     
     def stage_files(self, files: List[str]) -> bool:
-        """
-        Stage files for commit.
-        
-        Args:
-            files: List of file paths to stage
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Stage files for commit."""
         try:
             self.repo.index.add(files)
             return True
@@ -156,37 +70,9 @@ class GitIntegration:
             print(f"Error staging files: {e}")
             return False
     
-    def stage_all(self) -> bool:
-        """
-        Stage all changes (git add -A).
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            self.repo.git.add('-A')
-            return True
-        except git.GitCommandError as e:
-            print(f"Error staging all files: {e}")
-            return False
-    
-    def commit(
-        self,
-        message: str,
-        author_name: Optional[str] = None,
-        author_email: Optional[str] = None
-    ) -> Optional[str]:
-        """
-        Commit staged changes.
-        
-        Args:
-            message: Commit message
-            author_name: Optional author name (uses git config if not provided)
-            author_email: Optional author email
-            
-        Returns:
-            Commit SHA if successful, None otherwise
-        """
+    def commit(self, message: str, author_name: Optional[str] = None, 
+               author_email: Optional[str] = None) -> Optional[str]:
+        """Commit staged changes and return commit SHA."""
         try:
             if author_name and author_email:
                 author = git.Actor(author_name, author_email)
@@ -198,94 +84,81 @@ class GitIntegration:
             print(f"Error committing: {e}")
             return None
     
-    def get_recent_commits(self, limit: int = 10) -> List[Dict[str, any]]:
-        """
-        Get recent commits.
-        
-        Args:
-            limit: Maximum number of commits to return
-            
-        Returns:
-            List of commit dicts
-        """
+    def get_recent_commits(self, limit: int = 10) -> List[dict]:
+        """Get recent commits."""
         commits = []
         for commit in self.repo.iter_commits(max_count=limit):
             commits.append({
                 "sha": commit.hexsha[:7],
-                "full_sha": commit.hexsha,
                 "message": commit.message.strip(),
                 "author": commit.author.name,
                 "date": datetime.fromtimestamp(commit.committed_date)
             })
         return commits
     
-    def get_branch_commits(
-        self,
-        branch_name: str,
-        limit: int = 20
-    ) -> List[Dict[str, any]]:
-        """
-        Get commits from a specific branch (not in main).
+    def generate_branch_name(self, work_type: str, title: str) -> str:
+        """Generate a branch name from work item details."""
+        # Sanitize title for branch name
+        sanitized = title.lower().replace(" ", "-")
+        sanitized = "".join(c for c in sanitized if c.isalnum() or c == "-")
+        sanitized = sanitized[:30]  # Limit length
         
-        Args:
-            branch_name: Name of the branch
-            limit: Maximum number of commits to return
-            
-        Returns:
-            List of commit dicts
-        """
-        try:
-            commits = []
-            for commit in self.repo.iter_commits(f'main..{branch_name}', max_count=limit):
-                commits.append({
-                    "sha": commit.hexsha[:7],
-                    "full_sha": commit.hexsha,
-                    "message": commit.message.strip().split('\n')[0],
-                    "author": commit.author.name,
-                    "date": datetime.fromtimestamp(commit.committed_date),
-                    "full_message": commit.message.strip()
-                })
-            return commits
-        except git.GitCommandError:
-            return []
+        date_str = datetime.now().strftime("%Y%m%d")
+        return f"{work_type}/{sanitized}-{date_str}"
     
-    def is_branch_merged(
-        self,
-        branch_name: str,
-        target_branch: str = "main"
-    ) -> bool:
-        """
-        Check if a branch has been merged into target branch.
+    def ensure_changes_md_exists(self) -> bool:
+        """Ensure docs/CHANGES.md exists."""
+        changes_path = os.path.join(self.repo_path, "docs", "CHANGES.md")
+        if not os.path.exists(changes_path):
+            os.makedirs(os.path.dirname(changes_path), exist_ok=True)
+            with open(changes_path, "w") as f:
+                f.write("# Change Log\n\n")
+                f.write("All infrastructure changes are logged here.\n\n")
+        return True
+    
+    def append_to_changes_md(self, entry: str) -> bool:
+        """Append an entry to CHANGES.md."""
+        self.ensure_changes_md_exists()
+        changes_path = os.path.join(self.repo_path, "docs", "CHANGES.md")
         
-        Args:
-            branch_name: Branch to check
-            target_branch: Target branch (usually 'main')
-            
-        Returns:
-            True if merged, False otherwise
-        """
         try:
+            with open(changes_path, "a") as f:
+                f.write(f"\n{entry}\n")
+            return True
+        except IOError as e:
+            print(f"Error writing to CHANGES.md: {e}")
+            return False
+    
+    def validate_for_commit(self) -> Tuple[bool, str]:
+        """Validate repository is ready for commit."""
+        # Check if there are staged changes
+        if not self.repo.index.diff("HEAD"):
+            return False, "No staged changes to commit"
+        
+        # Check if CHANGES.md is staged
+        staged_files = [item.a_path for item in self.repo.index.diff("HEAD")]
+        if "docs/CHANGES.md" not in staged_files:
+            return False, "docs/CHANGES.md must be updated and staged before committing"
+        
+        return True, "Ready to commit"
+    
+    def is_branch_merged(self, branch_name: str, target_branch: str = "main") -> bool:
+        """Check if a branch has been merged into target branch."""
+        try:
+            # Get commits in branch but not in target
             commits = list(self.repo.iter_commits(f'{target_branch}..{branch_name}'))
+            # If no commits, branch is merged (or never had unique commits)
             return len(commits) == 0
         except git.GitCommandError:
             return False
     
-    def get_branch_info(self, branch_name: str) -> Dict[str, any]:
-        """
-        Get information about a branch.
-        
-        Args:
-            branch_name: Name of the branch
-            
-        Returns:
-            Dict with branch information or {"exists": False}
-        """
+    def get_branch_info(self, branch_name: str) -> dict:
+        """Get information about a branch."""
         try:
             branch = self.repo.heads[branch_name]
             return {
                 "exists": True,
                 "commit_sha": branch.commit.hexsha[:7],
-                "full_commit_sha": branch.commit.hexsha,
                 "commit_message": branch.commit.message.strip(),
                 "author": branch.commit.author.name,
                 "date": datetime.fromtimestamp(branch.commit.committed_date)
@@ -293,21 +166,8 @@ class GitIntegration:
         except (IndexError, AttributeError):
             return {"exists": False}
     
-    def merge_branch(
-        self,
-        branch_name: str,
-        target_branch: str = "main"
-    ) -> Tuple[bool, str]:
-        """
-        Merge a branch into target branch.
-        
-        Args:
-            branch_name: Branch to merge
-            target_branch: Target branch to merge into
-            
-        Returns:
-            Tuple of (success, result_message)
-        """
+    def merge_branch(self, branch_name: str, target_branch: str = "main") -> Tuple[bool, str]:
+        """Merge a branch into target branch."""
         try:
             # Checkout target branch
             self.checkout_branch(target_branch)
@@ -322,57 +182,32 @@ class GitIntegration:
         except git.GitCommandError as e:
             return False, str(e)
     
-    def check_changes_md_updated(self, branch_name: str = None) -> bool:
-        """
-        Check if CHANGES.md was modified in current branch compared to main.
-        
-        Args:
-            branch_name: Optional branch name (uses current branch if not provided)
-            
-        Returns:
-            True if CHANGES.md was modified, False otherwise
-        """
+    def check_changes_md_updated(self) -> bool:
+        """Check if CHANGES.md was modified in current branch."""
         try:
-            if branch_name:
-                diff = self.repo.git.diff(f'main..{branch_name}', '--name-only')
-            else:
-                diff = self.repo.git.diff('main', '--name-only')
+            # Get diff between current branch and main
+            diff = self.repo.git.diff('main', '--name-only')
             return 'docs/CHANGES.md' in diff
         except git.GitCommandError:
             return False
-    
-    def validate_for_commit(self) -> Tuple[bool, str]:
-        """
-        Validate repository is ready for commit.
         
-        Returns:
-            Tuple of (is_valid, message)
-        """
-        # Check if there are staged changes
-        if not self.repo.index.diff("HEAD"):
-            return False, "No staged changes to commit"
-        
-        # Check if CHANGES.md is staged
-        staged_files = [item.a_path for item in self.repo.index.diff("HEAD")]
-        if "docs/CHANGES.md" not in staged_files:
-            return False, "docs/CHANGES.md must be updated and staged before committing"
-        
-        return True, "Ready to commit"
-    
-    def get_author_info(self) -> Tuple[str, str]:
-        """
-        Get Git author information from config.
-        
-        Returns:
-            Tuple of (author_name, author_email)
-        """
+    def get_branch_commits(self, branch_name: str, limit: int = 20) -> List[dict]:
+        """Get commits from a specific branch (not in main)."""
         try:
-            name = self.repo.config_reader().get_value("user", "name")
-            email = self.repo.config_reader().get_value("user", "email")
-            return name, email
-        except:
-            return "Unknown", ""
+            # Get commits in branch but not in main
+            commits = []
+            for commit in self.repo.iter_commits(f'main..{branch_name}', max_count=limit):
+                commits.append({
+                    "sha": commit.hexsha[:7],
+                    "message": commit.message.strip().split('\n')[0],  # First line only
+                    "author": commit.author.name,
+                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "full_message": commit.message.strip()
+                })
+            return commits
+        except git.GitCommandError:
+            return []
 
 
 # Singleton instance for easy import
-git_integration = GitIntegration()
+git_manager = GitManager()
