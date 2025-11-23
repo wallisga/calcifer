@@ -148,6 +148,9 @@ async def toggle_checklist(work_id: int, index: int, db: Session = Depends(get_d
     
     if index < len(work_item.checklist):
         work_item.checklist[index]["done"] = not work_item.checklist[index]["done"]
+        # Mark the column as modified so SQLAlchemy saves it
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(work_item, "checklist")
         db.commit()
     
     return RedirectResponse(url=f"/work/{work_id}", status_code=303)
