@@ -11,6 +11,13 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Document Change
+- New patterns for Calcifer include Core Features and Integration Features. This may require an update to the work types.
+Document new data flow from UI to route to DB via core/integration service business logic
+Core features can leverage integration features as a non-breaking enhancement.
+Integration features are inherently extensions and are dependent on at least one core feature 
+
 ## 2025-11-23 - Gavin Wallis - New Platform Feature
 - Add core services and settings and integration creation
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
