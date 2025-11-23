@@ -11,6 +11,11 @@ All infrastructure changes are logged here.
 - Fixed checklist items not persisting (SQLAlchemy JSON column issue)
 
 ## 2024-11-22 - Feature Enhancements
-   - Enhanced work item completion with validation
-   - Added Git branch status tracking
-   - Improved checklist templates by work type
+- Enhanced work item completion with validation
+- Added Git branch status tracking
+- Improved checklist templates by work type
+- Fixed database location (now in data/ directory)
+- Added editable notes field (2000 char limit)
+- Added commit list view in work items
+- Added merge branch button in UI
+- Improved validation messages   
