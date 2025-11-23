@@ -55,20 +55,19 @@
                 <!-- Completion Requirements -->
                 <div class="card mt-4 border-info">
                     <div class="card-header bg-info text-white">
-                        <i class="bi bi-info-circle"></i> Completion Requirements
+                        <i class="bi bi-info-circle"></i> Requirements to Merge & Complete
                     </div>
                     <div class="card-body">
-                        <p class="mb-2"><strong>To Merge:</strong></p>
-                        <ul class="mb-2">
+                        <ul class="mb-0">
+                            <li>✅ All checklist items completed</li>
+                            <li>✅ Notes/documentation added</li>
                             <li>✅ Git branch has commits</li>
                             <li>✅ docs/CHANGES.md updated</li>
                         </ul>
-                        <p class="mb-2"><strong>To Complete:</strong></p>
-                        <ul class="mb-0">
-                            <li>✅ All checklist items completed</li>
-                            <li>✅ Branch merged to main</li>
-                            <li>✅ Documentation/notes added</li>
-                        </ul>
+                        <hr>
+                        <p class="small mb-0 text-muted">
+                            Click "Merge & Complete" when ready - it validates all requirements automatically.
+                        </p>
                     </div>
                 </div>
 
@@ -143,47 +142,74 @@
         <div class="card">
             <div class="card-header">Actions</div>
             <div class="card-body d-grid gap-2">
-                <!-- Merge Button -->
-                {% if work.git_branch and not branch_merged and work.status != 'complete' %}
-                <form method="post" action="/work/{{ work.id }}/merge">
-                    <button type="submit" class="btn btn-warning w-100">
-                        <i class="bi bi-git"></i> Merge Branch to Main
+                {% if work.status != 'complete' %}
+                <!-- Primary Action: Merge & Complete -->
+                <form method="post" action="/work/{{ work.id }}/merge-and-complete">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-circle-fill"></i> Merge & Complete
                     </button>
                 </form>
-                <small class="text-muted">Merge your changes before completing</small>
+                <div class="alert alert-info py-2 mb-0 small">
+                    <strong>This will:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>Validate all requirements</li>
+                        <li>Merge branch to main</li>
+                        <li>Mark work complete</li>
+                    </ul>
+                </div>
+
                 <hr>
+
+                <!-- Alternative: Just merge without completing -->
+                {% if not branch_merged %}
+                <form method="post" action="/work/{{ work.id }}/merge">
+                    <button type="submit" class="btn btn-outline-warning w-100">
+                        <i class="bi bi-git"></i> Merge Only (Don't Complete)
+                    </button>
+                </form>
+                <small class="text-muted">Use this if you want to merge but continue working</small>
                 {% endif %}
 
-                {% if work.status != 'complete' %}
+                {% if branch_merged %}
+                <div class="alert alert-success py-2 mb-0">
+                    <i class="bi bi-check-circle"></i> Branch already merged
+                </div>
+                <!-- Manual complete if already merged -->
                 <form method="post" action="/work/{{ work.id }}/complete">
-                    <button type="submit" class="btn btn-success w-100">
+                    <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-check-circle"></i> Mark Complete
                     </button>
                 </form>
-                <small class="text-muted">Will validate requirements before completing</small>
+                {% endif %}
                 {% else %}
                 <div class="alert alert-success mb-0">
                     <i class="bi bi-check-circle"></i> Work completed on {{ work.completed_date.strftime('%Y-%m-%d') }}
                 </div>
                 {% endif %}
-                <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Control Panel</a>
+
+                <a href="/" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Control Panel
+                </a>
             </div>
         </div>
 
         <!-- Rules Reminder -->
         <div class="card border-warning">
             <div class="card-header bg-warning text-dark">
-                <i class="bi bi-lightbulb"></i> Workflow Tips
+                <i class="bi bi-lightbulb"></i> Workflow
             </div>
             <div class="card-body small">
                 <ol class="mb-0">
-                    <li>Work on your branch</li>
-                    <li>Add documentation in Notes section</li>
+                    <li>Work on your feature branch</li>
+                    <li>Document your work in Notes</li>
                     <li>Update docs/CHANGES.md</li>
                     <li>Complete all checklist items</li>
-                    <li><strong>Merge branch</strong> (validates CHANGES.md)</li>
-                    <li>Mark work complete</li>
+                    <li>Click <strong>"Merge & Complete"</strong></li>
                 </ol>
+                <hr class="my-2">
+                <p class="mb-0 fst-italic">
+                    The button validates everything, merges your branch, and closes the work item automatically.
+                </p>
             </div>
         </div>
     </div>

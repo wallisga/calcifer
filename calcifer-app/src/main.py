@@ -205,7 +205,7 @@ async def update_notes(
 
 @app.post("/work/{work_id}/complete")
 async def complete_work(work_id: int, db: Session = Depends(get_db)):
-    """Mark work as complete - with validation."""
+    """Mark work as complete - simple validation only."""
     work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
     if not work_item:
         raise HTTPException(status_code=404, detail="Work item not found")
@@ -218,19 +218,12 @@ async def complete_work(work_id: int, db: Session = Depends(get_db)):
     if incomplete_items:
         errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
     
-    # Check 2: Branch exists and has commits?
-    if work_item.git_branch:
-        branch_info = git_manager.get_branch_info(work_item.git_branch)
-        if not branch_info["exists"]:
-            errors.append(f"Git branch '{work_item.git_branch}' does not exist")
-        
-        # Check 3: CHANGES.md updated?
-        if not git_manager.check_changes_md_updated():
-            errors.append("docs/CHANGES.md not updated in this branch")
+    # Check 2: Branch merged?
+    if work_item.git_branch and not work_item.branch_merged:
+        errors.append("Branch not yet merged to main")
     
     # If there are validation errors, show them
     if errors:
-        # Store errors in session/flash message (for now, we'll redirect with query param)
         error_msg = " | ".join(errors)
         return RedirectResponse(
             url=f"/work/{work_id}?error={error_msg}", 
@@ -299,6 +292,72 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
             url=f"/work/{work_id}?error=Merge failed: {result}",
             status_code=303
         )
+    
+@app.post("/work/{work_id}/merge-and-complete")
+async def merge_and_complete(work_id: int, db: Session = Depends(get_db)):
+    """Validate, merge branch, and complete work item in one action."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    # VALIDATION PHASE
+    errors = []
+    
+    # Check 1: All checklist items completed?
+    incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
+    if incomplete_items:
+        errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
+    
+    # Check 2: Branch exists?
+    if not work_item.git_branch:
+        errors.append("No Git branch associated with this work item")
+    
+    # Check 3: Branch has commits?
+    if work_item.git_branch:
+        branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+        if not branch_commits:
+            errors.append("Branch has no commits")
+    
+    # Check 4: CHANGES.md updated?
+    if work_item.git_branch:
+        if not git_manager.check_changes_md_updated():
+            errors.append("docs/CHANGES.md not updated in this branch")
+    
+    # If validation fails, stop here
+    if errors:
+        error_msg = " | ".join(errors)
+        return RedirectResponse(
+            url=f"/work/{work_id}?error={error_msg}",
+            status_code=303
+        )
+    
+    # MERGE PHASE
+    # Check if already merged
+    if git_manager.is_branch_merged(work_item.git_branch):
+        work_item.branch_merged = True
+    else:
+        # Attempt merge
+        success, result = git_manager.merge_branch(work_item.git_branch)
+        
+        if not success:
+            return RedirectResponse(
+                url=f"/work/{work_id}?error=Merge failed: {result}",
+                status_code=303
+            )
+        
+        # Update merge status
+        work_item.branch_merged = True
+        work_item.merge_commit_sha = result
+    
+    # COMPLETION PHASE
+    work_item.status = "complete"
+    work_item.completed_date = datetime.utcnow()
+    db.commit()
+    
+    return RedirectResponse(
+        url="/?success=Work item completed and merged successfully!",
+        status_code=303
+    )    
 
 @app.get("/services", response_class=HTMLResponse)
 async def service_catalog(request: Request, db: Session = Depends(get_db)):
