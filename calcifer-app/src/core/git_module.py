@@ -323,4 +323,4 @@ class GitModule:
 
 
 # Singleton instance for easy import
-git_module = GitModule()
+git_module = GitModule(repo_path="..")
