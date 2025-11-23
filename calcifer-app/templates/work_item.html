@@ -58,16 +58,20 @@
                         <i class="bi bi-info-circle"></i> Completion Requirements
                     </div>
                     <div class="card-body">
-                        <ul class="mb-0">
-                            <li>✅ All checklist items completed</li>
+                        <p class="mb-2"><strong>To Merge:</strong></p>
+                        <ul class="mb-2">
                             <li>✅ Git branch has commits</li>
                             <li>✅ docs/CHANGES.md updated</li>
-                            <li>⏳ Branch merged to main (optional - can merge after)</li>
+                        </ul>
+                        <p class="mb-2"><strong>To Complete:</strong></p>
+                        <ul class="mb-0">
+                            <li>✅ All checklist items completed</li>
+                            <li>✅ Branch merged to main</li>
+                            <li>✅ Documentation/notes added</li>
                         </ul>
                     </div>
                 </div>
 
-                {% if work.notes %}
                 <!-- Notes Section -->
                 <h5 class="mt-4">Documentation & Notes</h5>
                 <form method="post" action="/work/{{ work.id }}/notes">
@@ -82,7 +86,6 @@
                         <i class="bi bi-save"></i> Save Notes
                     </button>
                 </form>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -175,10 +178,11 @@
             <div class="card-body small">
                 <ol class="mb-0">
                     <li>Work on your branch</li>
+                    <li>Add documentation in Notes section</li>
                     <li>Update docs/CHANGES.md</li>
                     <li>Complete all checklist items</li>
-                    <li>Mark work complete here</li>
-                    <li>Merge branch to main</li>
+                    <li><strong>Merge branch</strong> (validates CHANGES.md)</li>
+                    <li>Mark work complete</li>
                 </ol>
             </div>
         </div>

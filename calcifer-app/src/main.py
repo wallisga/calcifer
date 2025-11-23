@@ -246,7 +246,7 @@ async def complete_work(work_id: int, db: Session = Depends(get_db)):
 
 @app.post("/work/{work_id}/merge")
 async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
-    """Merge work item branch to main."""
+    """Merge work item branch to main - with validation."""
     work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
     if not work_item:
         raise HTTPException(status_code=404, detail="Work item not found")
@@ -266,6 +266,21 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
             status_code=303
         )
     
+    # VALIDATION: Check if CHANGES.md was updated
+    if not git_manager.check_changes_md_updated():
+        return RedirectResponse(
+            url=f"/work/{work_id}?error=Cannot merge: docs/CHANGES.md not updated in this branch",
+            status_code=303
+        )
+    
+    # VALIDATION: Check if branch has commits
+    branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+    if not branch_commits:
+        return RedirectResponse(
+            url=f"/work/{work_id}?error=Cannot merge: branch has no commits",
+            status_code=303
+        )
+    
     # Attempt merge
     success, result = git_manager.merge_branch(work_item.git_branch)
     
@@ -276,7 +291,7 @@ async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
         db.commit()
         
         return RedirectResponse(
-            url=f"/work/{work_id}?success=Branch merged successfully",
+            url=f"/work/{work_id}?success=Branch merged successfully! You can now mark work complete.",
             status_code=303
         )
     else:
