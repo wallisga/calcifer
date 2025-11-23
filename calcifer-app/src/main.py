@@ -739,10 +739,7 @@ async def create_endpoint(
     db.commit()
     db.refresh(endpoint)  # ADD THIS
     
-# 5. Add files to git
-    git_manager.stage_files([f"docs/{doc_filename}"])
-    
-    # 5.5. AUTO-COMMIT the endpoint creation
+    # 5. AUTO-COMMIT the endpoint creation
     commit_message = f"Add monitoring endpoint: {name}"
     
     # Update CHANGES.md
@@ -780,7 +777,7 @@ async def create_endpoint(
         f.writelines(lines)
     
     # Stage CHANGES.md too
-    git_manager.stage_files(['docs/CHANGES.md'])
+    git_manager.stage_files(['docs/CHANGES.md', f'docs/{doc_filename}'])
     
     # Perform the commit
     commit_sha = git_manager.commit(commit_message)

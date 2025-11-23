@@ -167,6 +167,100 @@ class MonitoringIntegration:
         
         db.commit()
         return is_up
+    
+    @staticmethod
+    def generate_endpoint_documentation(
+        name: str,
+        endpoint_type: str,
+        target: str,
+        port: Optional[int],
+        description: Optional[str]
+    ) -> str:
+        """
+        Generate markdown documentation for an endpoint.
+        
+        Args:
+            name: Endpoint name
+            endpoint_type: Type of endpoint (network, tcp, http, https)
+            target: Target IP/hostname
+            port: Port number (optional)
+            description: Endpoint description (optional)
+            
+        Returns:
+            Markdown formatted documentation string
+        """
+        check_method = {
+            'network': 'Ping (ICMP)',
+            'tcp': f'TCP Port {port}' if port else 'TCP',
+            'http': f'HTTP GET' + (f' on port {port}' if port else ''),
+            'https': f'HTTPS GET' + (f' on port {port}' if port else '')
+        }.get(endpoint_type, 'Unknown')
+        
+        doc = f"""# Endpoint: {name}
+
+## Overview
+
+**Type:** {endpoint_type.upper()}  
+**Target:** `{target}`  
+**Status:** Monitored by Calcifer
+
+{description if description else f'Endpoint monitoring for {name}.'}
+
+## Monitoring Configuration
+
+This endpoint is monitored for availability.
+
+**Check Type:** {endpoint_type}  
+**Check Method:** {check_method}
+
+## Access Information
+
+**Target:** `{target}`"""
+        
+        if port:
+            doc += f"  \n**Port:** `{port}`"
+        
+        doc += """
+
+## Troubleshooting
+
+### Endpoint is Down
+
+1. **Check network connectivity:**
+```bash
+   ping {target}
+```
+
+2. **Check specific port (if applicable):**
+```bash
+   nc -zv {target}{port_part}
+```
+
+3. **Check firewall rules:**
+   - Verify firewall allows traffic from monitoring server
+   - Check iptables/firewalld rules
+
+4. **Verify service is running:**
+   - Check if the target service/device is online
+   - Review service logs
+
+## History
+
+- **Created:** {date}
+- **Purpose:** Monitor availability of {name}
+
+## Related
+
+- Endpoint configuration in Calcifer
+- Service catalog entry
+""".format(
+            target=target,
+            port_part=f' {port}' if port else '',
+            date=datetime.now().strftime('%Y-%m-%d'),
+            name=name
+        )
+        
+        return doc
 
 
 # Singleton instance for easy import
