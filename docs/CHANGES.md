@@ -18,4 +18,4 @@ All infrastructure changes are logged here.
 - Added editable notes field (2000 char limit)
 - Added commit list view in work items
 - Added merge branch button in UI
-- Improved validation messages   
+- Improved validation messages
