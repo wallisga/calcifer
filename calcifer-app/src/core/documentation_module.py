@@ -25,9 +25,9 @@ class DocumentationModule:
     - Documentation file creation
     """
     
-    def __init__(self, docs_path: str = "docs", repo_path: str = "."):
+    def __init__(self, docs_path: str = "docs", repo_path: str = ".."):
         """
-        Initialize documentation module.
+        Initialize documentation core.
         
         Args:
             docs_path: Path to docs directory (relative to repo_path)
@@ -38,10 +38,6 @@ class DocumentationModule:
         
         # Ensure docs directory exists
         self.docs_path.mkdir(parents=True, exist_ok=True)
-    
-    # ========================================================================
-    # DOCUMENTATION DISCOVERY & RENDERING
-    # ========================================================================
     
     def get_all_docs(self) -> List[Dict[str, str]]:
         """
@@ -110,17 +106,29 @@ class DocumentationModule:
         
         return html
     
-    # ========================================================================
-    # CHANGES.MD MANAGEMENT
-    # ========================================================================
+    def create_doc(self, doc_name: str, content: str) -> bool:
+        """
+        Create a new documentation file.
+        
+        Args:
+            doc_name: Name of the markdown file (e.g., 'endpoint-nginx.md')
+            content: Markdown content to write
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        doc_path = self.docs_path / doc_name
+        
+        try:
+            with open(doc_path, 'w') as f:
+                f.write(content)
+            return True
+        except IOError as e:
+            print(f"Error creating doc {doc_name}: {e}")
+            return False
     
     def ensure_changes_md_exists(self) -> bool:
-        """
-        Ensure CHANGES.md exists with header.
-        
-        Returns:
-            True if successful
-        """
+        """Ensure CHANGES.md exists with header."""
         changes_path = self.docs_path / "CHANGES.md"
         
         if not changes_path.exists():
@@ -178,54 +186,6 @@ class DocumentationModule:
         except IOError as e:
             print(f"Error writing to CHANGES.md: {e}")
             return False
-    
-    # ========================================================================
-    # DOCUMENTATION CREATION
-    # ========================================================================
-    
-    def create_doc(
-        self,
-        doc_name: str,
-        content: str
-    ) -> bool:
-        """
-        Create a new documentation file.
-        
-        Args:
-            doc_name: Name of the file (should end in .md)
-            content: Markdown content
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not doc_name.endswith('.md'):
-            doc_name += '.md'
-        
-        doc_path = self.docs_path / doc_name
-        
-        try:
-            with open(doc_path, 'w') as f:
-                f.write(content)
-            return True
-        except IOError as e:
-            print(f"Error creating documentation: {e}")
-            return False
-    
-    def get_doc_path(self, doc_name: str) -> str:
-        """
-        Get the full path to a documentation file.
-        
-        Args:
-            doc_name: Name of the file
-            
-        Returns:
-            Full path to the file
-        """
-        if not doc_name.endswith('.md'):
-            doc_name += '.md'
-        
-        return str(self.docs_path / doc_name)
-
 
 # Singleton instance for easy import
 documentation_module = DocumentationModule()
