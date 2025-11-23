@@ -17,6 +17,14 @@ class WorkItem(Base):
     started_date = Column(DateTime, default=datetime.utcnow)
     completed_date = Column(DateTime, nullable=True)
     
+    # NEW: Git tracking fields
+    branch_merged = Column(Boolean, default=False)
+    merge_commit_sha = Column(String(40), nullable=True)
+    
+    # NEW: Documentation tracking
+    docs_updated = Column(Boolean, default=False)
+    docs_path = Column(String(200), nullable=True)  # Path to related docs
+    
     # Checklist stored as JSON
     checklist = Column(JSON, default=list)
     

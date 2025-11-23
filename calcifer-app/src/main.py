@@ -92,29 +92,46 @@ async def create_work(
     if work_type == "new_service":
         work_item.checklist = [
             {"item": "Define purpose and requirements", "done": False},
-            {"item": "Check resource availability", "done": False},
-            {"item": "Create docker-compose.yml", "done": False},
+            {"item": "Check resource availability (RAM/CPU)", "done": False},
+            {"item": "Create docker-compose.yml or config files", "done": False},
+            {"item": "Document service in work item notes", "done": False},
             {"item": "Test locally", "done": False},
-            {"item": "Deploy to VM", "done": False},
-            {"item": "Add monitoring", "done": False},
-            {"item": "Update service catalog", "done": False},
-            {"item": "Document in Calcifer", "done": False}
+            {"item": "Update docs/CHANGES.md with service details", "done": False},
+            {"item": "Deploy to target VM/host", "done": False},
+            {"item": "Add to service catalog in Calcifer", "done": False},
+            {"item": "Verify service is accessible", "done": False}
         ]
     elif work_type == "config_change":
         work_item.checklist = [
-            {"item": "Document current state", "done": False},
-            {"item": "Backup configs", "done": False},
-            {"item": "Make changes", "done": False},
-            {"item": "Verify functionality", "done": False},
-            {"item": "Update documentation", "done": False}
+            {"item": "Document current configuration state", "done": False},
+            {"item": "Backup existing configuration files", "done": False},
+            {"item": "Make configuration changes", "done": False},
+            {"item": "Update docs/CHANGES.md with change details", "done": False},
+            {"item": "Test changes thoroughly", "done": False},
+            {"item": "Verify no regressions or issues", "done": False},
+            {"item": "Update relevant documentation", "done": False}
         ]
-    else:
+    elif work_type == "new_vm":
         work_item.checklist = [
-            {"item": "Define task", "done": False},
-            {"item": "Complete work", "done": False},
-            {"item": "Document results", "done": False}
+            {"item": "Define VM purpose and requirements", "done": False},
+            {"item": "Allocate resources (RAM/CPU/disk)", "done": False},
+            {"item": "Create VM in Proxmox", "done": False},
+            {"item": "Install and configure OS", "done": False},
+            {"item": "Update docs/CHANGES.md with VM details", "done": False},
+            {"item": "Add VM to service catalog", "done": False},
+            {"item": "Configure monitoring/backups", "done": False},
+            {"item": "Document access credentials in Vaultwarden", "done": False}
         ]
-    
+    else:  # troubleshooting
+        work_item.checklist = [
+            {"item": "Identify and document the issue", "done": False},
+            {"item": "Investigate root cause", "done": False},
+            {"item": "Implement fix or workaround", "done": False},
+            {"item": "Update docs/CHANGES.md with resolution", "done": False},
+            {"item": "Test to verify issue is resolved", "done": False},
+            {"item": "Document for future reference", "done": False}
+        ]
+
     db.add(work_item)
     db.commit()
     db.refresh(work_item)
@@ -157,11 +174,39 @@ async def toggle_checklist(work_id: int, index: int, db: Session = Depends(get_d
 
 @app.post("/work/{work_id}/complete")
 async def complete_work(work_id: int, db: Session = Depends(get_db)):
-    """Mark work as complete."""
+    """Mark work as complete - with validation."""
     work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
     if not work_item:
         raise HTTPException(status_code=404, detail="Work item not found")
     
+    # Validation checks
+    errors = []
+    
+    # Check 1: All checklist items completed?
+    incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
+    if incomplete_items:
+        errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
+    
+    # Check 2: Branch exists and has commits?
+    if work_item.git_branch:
+        branch_info = git_manager.get_branch_info(work_item.git_branch)
+        if not branch_info["exists"]:
+            errors.append(f"Git branch '{work_item.git_branch}' does not exist")
+        
+        # Check 3: CHANGES.md updated?
+        if not git_manager.check_changes_md_updated():
+            errors.append("docs/CHANGES.md not updated in this branch")
+    
+    # If there are validation errors, show them
+    if errors:
+        # Store errors in session/flash message (for now, we'll redirect with query param)
+        error_msg = " | ".join(errors)
+        return RedirectResponse(
+            url=f"/work/{work_id}?error={error_msg}", 
+            status_code=303
+        )
+    
+    # All checks passed - mark complete
     work_item.status = "complete"
     work_item.completed_date = datetime.utcnow()
     db.commit()

@@ -3,10 +3,22 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8">
+        <!-- Error Messages -->
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-exclamation-triangle"></i> Cannot Complete Work Item:</strong><br>
+            {% for err in request.query_params.get('error').split('|') %}
+            • {{ err }}<br>
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
         <div class="card">
             <div class="card-header d-flex justify-content-between">
                 <span><i class="bi bi-file-text"></i> {{ work.title }}</span>
-                <span class="badge status-badge status-{{ work.status }}">{{ work.status.replace('_', ' ').title() }}</span>
+                <span class="badge status-badge status-{{ work.status }}">{{ work.status.replace('_', ' ').title()
+                    }}</span>
             </div>
             <div class="card-body">
                 <p><strong>Type:</strong> {{ work.work_type.replace('_', ' ').title() }}</p>
@@ -16,20 +28,36 @@
                 <p><strong>Description:</strong></p>
                 <p>{{ work.description }}</p>
                 {% endif %}
-                
-                <h5 class="mt-4">Checklist</h5>
+
+                <h5 class="mt-4">Progress Checklist</h5>
                 <form method="post">
                     {% for item in work.checklist %}
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" {% if item.done %}checked{% endif %}
-                               onclick="this.form.action='/work/{{ work.id }}/checklist/{{ loop.index0 }}'; this.form.submit();">
-                        <label class="form-check-label {% if item.done %}text-decoration-line-through text-muted{% endif %}">
+                            onclick="this.form.action='/work/{{ work.id }}/checklist/{{ loop.index0 }}'; this.form.submit();">
+                        <label
+                            class="form-check-label {% if item.done %}text-decoration-line-through text-muted{% endif %}">
                             {{ item.item }}
                         </label>
                     </div>
                     {% endfor %}
                 </form>
-                
+
+                <!-- Completion Requirements -->
+                <div class="card mt-4 border-info">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-info-circle"></i> Completion Requirements
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li>✅ All checklist items completed</li>
+                            <li>✅ Git branch has commits</li>
+                            <li>✅ docs/CHANGES.md updated</li>
+                            <li>⏳ Branch merged to main (optional - can merge after)</li>
+                        </ul>
+                    </div>
+                </div>
+
                 {% if work.notes %}
                 <h5 class="mt-4">Notes</h5>
                 <pre class="bg-light p-3 rounded">{{ work.notes }}</pre>
@@ -37,16 +65,63 @@
             </div>
         </div>
     </div>
+
     <div class="col-md-4">
+        <!-- Git Status Card -->
+        <div class="card">
+            <div class="card-header"><i class="bi bi-git"></i> Git Status</div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Branch:</strong><br><code class="small">{{ work.git_branch }}</code></p>
+
+                {% if work.branch_merged %}
+                <div class="alert alert-success mb-2 py-2">
+                    <i class="bi bi-check-circle"></i> Branch merged to main
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-2 py-2">
+                    <i class="bi bi-exclamation-triangle"></i> Not yet merged
+                </div>
+                {% endif %}
+
+                <p class="small text-muted mb-0">
+                    <i class="bi bi-info-circle"></i> Merge branch manually via command line or GitHub PR
+                </p>
+            </div>
+        </div>
+
+        <!-- Actions Card -->
         <div class="card">
             <div class="card-header">Actions</div>
             <div class="card-body d-grid gap-2">
                 {% if work.status != 'complete' %}
                 <form method="post" action="/work/{{ work.id }}/complete">
-                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle"></i> Mark Complete</button>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-circle"></i> Mark Complete
+                    </button>
                 </form>
+                <small class="text-muted">Will validate requirements before completing</small>
+                {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle"></i> Work completed on {{ work.completed_date.strftime('%Y-%m-%d') }}
+                </div>
                 {% endif %}
                 <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Control Panel</a>
+            </div>
+        </div>
+
+        <!-- Rules Reminder -->
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-lightbulb"></i> Workflow Tips
+            </div>
+            <div class="card-body small">
+                <ol class="mb-0">
+                    <li>Work on your branch</li>
+                    <li>Update docs/CHANGES.md</li>
+                    <li>Complete all checklist items</li>
+                    <li>Mark work complete here</li>
+                    <li>Merge branch to main</li>
+                </ol>
             </div>
         </div>
     </div>

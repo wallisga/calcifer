@@ -134,3 +134,52 @@ class GitManager:
             return False, "docs/CHANGES.md must be updated and staged before committing"
         
         return True, "Ready to commit"
+    
+    def is_branch_merged(self, branch_name: str, target_branch: str = "main") -> bool:
+        """Check if a branch has been merged into target branch."""
+        try:
+            # Get commits in branch but not in target
+            commits = list(self.repo.iter_commits(f'{target_branch}..{branch_name}'))
+            # If no commits, branch is merged (or never had unique commits)
+            return len(commits) == 0
+        except git.GitCommandError:
+            return False
+    
+    def get_branch_info(self, branch_name: str) -> dict:
+        """Get information about a branch."""
+        try:
+            branch = self.repo.heads[branch_name]
+            return {
+                "exists": True,
+                "commit_sha": branch.commit.hexsha[:7],
+                "commit_message": branch.commit.message.strip(),
+                "author": branch.commit.author.name,
+                "date": datetime.fromtimestamp(branch.commit.committed_date)
+            }
+        except (IndexError, AttributeError):
+            return {"exists": False}
+    
+    def merge_branch(self, branch_name: str, target_branch: str = "main") -> Tuple[bool, str]:
+        """Merge a branch into target branch."""
+        try:
+            # Checkout target branch
+            self.checkout_branch(target_branch)
+            
+            # Merge the branch
+            self.repo.git.merge(branch_name)
+            
+            # Get merge commit SHA
+            merge_sha = self.repo.head.commit.hexsha
+            
+            return True, merge_sha
+        except git.GitCommandError as e:
+            return False, str(e)
+    
+    def check_changes_md_updated(self) -> bool:
+        """Check if CHANGES.md was modified in current branch."""
+        try:
+            # Get diff between current branch and main
+            diff = self.repo.git.diff('main', '--name-only')
+            return 'docs/CHANGES.md' in diff
+        except git.GitCommandError:
+            return False
