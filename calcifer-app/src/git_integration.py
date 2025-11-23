@@ -183,3 +183,20 @@ class GitManager:
             return 'docs/CHANGES.md' in diff
         except git.GitCommandError:
             return False
+        
+    def get_branch_commits(self, branch_name: str, limit: int = 20) -> List[dict]:
+        """Get commits from a specific branch (not in main)."""
+        try:
+            # Get commits in branch but not in main
+            commits = []
+            for commit in self.repo.iter_commits(f'main..{branch_name}', max_count=limit):
+                commits.append({
+                    "sha": commit.hexsha[:7],
+                    "message": commit.message.strip().split('\n')[0],  # First line only
+                    "author": commit.author.name,
+                    "date": datetime.fromtimestamp(commit.committed_date),
+                    "full_message": commit.message.strip()
+                })
+            return commits
+        except git.GitCommandError:
+            return []        

@@ -145,15 +145,29 @@ async def work_detail(request: Request, work_id: int, db: Session = Depends(get_
     if not work_item:
         raise HTTPException(status_code=404, detail="Work item not found")
     
-    # Get associated commits
-    commits = db.query(models.Commit).filter(
+    # Get associated commits from database
+    db_commits = db.query(models.Commit).filter(
         models.Commit.work_item_id == work_id
     ).order_by(models.Commit.committed_date.desc()).all()
+    
+    # Get commits from Git branch (newer approach - shows real branch commits)
+    branch_commits = []
+    if work_item.git_branch:
+        branch_commits = git_manager.get_branch_commits(work_item.git_branch)
+    
+    # Get branch merge status
+    branch_merged = False
+    if work_item.git_branch:
+        branch_merged = git_manager.is_branch_merged(work_item.git_branch)
+        work_item.branch_merged = branch_merged
+        db.commit()
     
     return templates.TemplateResponse("work_item.html", {
         "request": request,
         "work": work_item,
-        "commits": commits
+        "commits": db_commits,  # Keep for backward compatibility
+        "branch_commits": branch_commits,  # New: actual branch commits
+        "branch_merged": branch_merged
     })
 
 @app.post("/work/{work_id}/checklist/{index}")
@@ -169,6 +183,23 @@ async def toggle_checklist(work_id: int, index: int, db: Session = Depends(get_d
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(work_item, "checklist")
         db.commit()
+    
+    return RedirectResponse(url=f"/work/{work_id}", status_code=303)
+
+@app.post("/work/{work_id}/notes")
+async def update_notes(
+    work_id: int, 
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update work item notes."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    # Limit to 2000 characters
+    work_item.notes = notes[:2000] if notes else None
+    db.commit()
     
     return RedirectResponse(url=f"/work/{work_id}", status_code=303)
 
@@ -212,6 +243,47 @@ async def complete_work(work_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return RedirectResponse(url="/", status_code=303)
+
+@app.post("/work/{work_id}/merge")
+async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
+    """Merge work item branch to main."""
+    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    if not work_item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    
+    if not work_item.git_branch:
+        return RedirectResponse(
+            url=f"/work/{work_id}?error=No branch associated with this work item",
+            status_code=303
+        )
+    
+    # Check if already merged
+    if git_manager.is_branch_merged(work_item.git_branch):
+        work_item.branch_merged = True
+        db.commit()
+        return RedirectResponse(
+            url=f"/work/{work_id}?success=Branch already merged",
+            status_code=303
+        )
+    
+    # Attempt merge
+    success, result = git_manager.merge_branch(work_item.git_branch)
+    
+    if success:
+        # Update work item
+        work_item.branch_merged = True
+        work_item.merge_commit_sha = result
+        db.commit()
+        
+        return RedirectResponse(
+            url=f"/work/{work_id}?success=Branch merged successfully",
+            status_code=303
+        )
+    else:
+        return RedirectResponse(
+            url=f"/work/{work_id}?error=Merge failed: {result}",
+            status_code=303
+        )
 
 @app.get("/services", response_class=HTMLResponse)
 async def service_catalog(request: Request, db: Session = Depends(get_db)):

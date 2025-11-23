@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # Database file location
-DB_PATH = os.getenv("DB_PATH", "./calcifer.db")
+DB_PATH = os.getenv("DB_PATH", "./data/calcifer.db")
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # Create engine
