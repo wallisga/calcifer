@@ -17,5 +17,5 @@ All infrastructure changes are logged here.
 - Fixed database location (now in data/ directory)
 - Added editable notes field (2000 char limit)
 - Added commit list view in work items
-- Added merge branch button in UI
+- Added merge and complete button in UI
 - Improved validation messages
