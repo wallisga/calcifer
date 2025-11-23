@@ -13,6 +13,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Service
+- Add monitoring endpoint: nginx (network - 10.66.33.112)
 ## 2025-11-23 - Gavin Wallis - Platform Feature Fix
 - Test
 ## 2025-11-23 - Gavin Wallis - Document Change
