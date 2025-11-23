@@ -4,6 +4,10 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Platform Feature
+- Ensure endpoints are automatically checked after creation.
+Update checklist
 ## 2025-11-23 - Gavin Wallis - New Platform Feature
 - Add endpoint model
 Add endpoint wizard page

@@ -687,11 +687,11 @@ async def create_endpoint(
     
     # Checklist for endpoint creation
     work_item.checklist = [
-        {"item": "Define endpoint details", "done": True},  # Already done in form
-        {"item": "Create documentation", "done": False},
-        {"item": "Configure monitoring check", "done": False},
-        {"item": "Verify endpoint is reachable", "done": False},
-        {"item": "Add to endpoint catalog", "done": False}
+        {"item": "Define endpoint details (done by wizard)", "done": True},
+        {"item": "Create documentation (done automatically)", "done": True},
+        {"item": "Configure monitoring check (done automatically)", "done": True},
+        {"item": "Verify endpoint is reachable", "done": False},  # Will be set based on check
+        {"item": "Review and commit endpoint configuration", "done": False}
     ]
     
     db.add(work_item)
@@ -736,9 +736,23 @@ async def create_endpoint(
     
     db.add(endpoint)
     db.commit()
+    db.refresh(endpoint)  # ADD THIS
     
     # 5. Add files to git
     git_manager.stage_files([f"docs/{doc_filename}"])
+    
+    # 5.5. PERFORM INITIAL CHECK
+    is_up = perform_endpoint_check(endpoint)
+    endpoint.last_check = datetime.utcnow()
+    if is_up:
+        endpoint.status = "up"
+        endpoint.last_up = datetime.utcnow()
+        endpoint.consecutive_failures = 0
+    else:
+        endpoint.status = "down"
+        endpoint.last_down = datetime.utcnow()
+        endpoint.consecutive_failures = 1
+    db.commit()
     
     # 6. Update work item notes
     work_item.notes = f"""# Endpoint: {name}
@@ -747,6 +761,7 @@ async def create_endpoint(
 **Target:** {target}
 {'**Port:** ' + str(port) if port else ''}
 **Check Interval:** {check_interval}s
+**Initial Status:** {'✅ UP' if is_up else '❌ DOWN'}
 
 ## Generated Files
 - Documentation: `docs/{doc_filename}`
@@ -757,16 +772,29 @@ async def create_endpoint(
 {json.dumps(monitor_config, indent=2)}
 ```
 
+## Initial Check Results
+- Performed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- Status: {'UP - endpoint is reachable' if is_up else 'DOWN - endpoint is not reachable'}
+
 ## Next Steps
 1. Review documentation
 2. Commit changes
-3. Perform initial connectivity check
+3. {'Investigate connectivity issue' if not is_up else 'Verify monitoring configuration'}
 4. Merge and complete
 """
+    
+    # Auto-complete checklist items that wizard already did
+    work_item.checklist[0]["done"] = True  # Define endpoint details
+    work_item.checklist[1]["done"] = True  # Create documentation
+    work_item.checklist[2]["done"] = True  # Configure monitoring check
+    work_item.checklist[3]["done"] = is_up  # Verify endpoint is reachable (only if UP)
+    # checklist[4] stays False - user needs to commit
+    
     db.commit()
     
     # 7. Redirect to work item
-    return RedirectResponse(url=f"/work/{work_item.id}?success=Endpoint created! Review and commit changes.", status_code=303)
+    status_msg = "Endpoint created and is UP! ✅" if is_up else "Endpoint created but is DOWN ❌ - check connectivity"
+    return RedirectResponse(url=f"/work/{work_item.id}?success={status_msg}", status_code=303)
 
 @app.get("/endpoints/{endpoint_id}", response_class=HTMLResponse)
 async def endpoint_detail(request: Request, endpoint_id: int, db: Session = Depends(get_db)):
@@ -811,6 +839,27 @@ async def check_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
     
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=303)
 
+@app.post("/endpoints/{endpoint_id}/delete")
+async def delete_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
+    """Delete endpoint and optionally its work item."""
+    endpoint = db.query(models.Endpoint).filter(models.Endpoint.id == endpoint_id).first()
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    endpoint_name = endpoint.name
+    work_item_id = endpoint.work_item_id
+    
+    # Delete endpoint from database
+    db.delete(endpoint)
+    db.commit()
+    
+    # Optionally delete documentation file
+    # (keeping it for now - can be useful for audit trail)
+    
+    return RedirectResponse(
+        url=f"/endpoints?success=Endpoint '{endpoint_name}' deleted successfully",
+        status_code=303
+    )
 
 # Helper functions
 

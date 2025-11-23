@@ -21,7 +21,8 @@
 
                     <dt class="col-sm-3">Target:</dt>
                     <dd class="col-sm-9">
-                        <code>{{ endpoint.target }}{% if endpoint.port %}:{{ endpoint.port }}{% endif %}</code></dd>
+                        <code>{{ endpoint.target }}{% if endpoint.port %}:{{ endpoint.port }}{% endif %}</code>
+                    </dd>
 
                     <dt class="col-sm-3">Check Interval:</dt>
                     <dd class="col-sm-9">{{ endpoint.check_interval }} seconds</dd>
@@ -79,6 +80,16 @@
                 <a href="/endpoints" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Back to Endpoints
                 </a>
+
+                <hr>
+
+                <form method="post" action="/endpoints/{{ endpoint.id }}/delete"
+                    onsubmit="return confirm('Delete this endpoint? This will NOT delete the associated work item or documentation.');">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash"></i> Delete Endpoint
+                    </button>
+                </form>
+                <small class="text-muted">Deletes endpoint from monitoring (keeps docs and work item)</small>
             </div>
         </div>
 

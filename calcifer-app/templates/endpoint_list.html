@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Monitored Endpoints - Calcifer{% endblock %}
 {% block content %}
+<!-- Success Messages -->
+{% if request.query_params.get('success') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <strong><i class="bi bi-check-circle"></i> Success!</strong><br>
+    {{ request.query_params.get('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-broadcast"></i> Monitored Endpoints</h2>
     <a href="/endpoints/new" class="btn btn-primary"><i class="bi bi-plus"></i> Add Endpoint</a>
@@ -35,7 +44,17 @@
 
                 {% if endpoint.last_check %}
                 <p class="small text-muted mb-2">
-                    <i class="bi bi-clock"></i> Last check: {{ endpoint.last_check.strftime('%H:%M:%S') }}
+                    <i class="bi bi-clock"></i> Last check: {{ endpoint.last_check.strftime('%Y-%m-%d %H:%M:%S') }}
+                </p>
+                {% else %}
+                <p class="small text-muted mb-2">
+                    <i class="bi bi-question-circle"></i> Not checked yet
+                </p>
+                {% endif %}
+
+                {% if endpoint.consecutive_failures > 0 and endpoint.status == 'down' %}
+                <p class="small text-danger mb-2">
+                    <i class="bi bi-exclamation-triangle"></i> {{ endpoint.consecutive_failures }} consecutive failures
                 </p>
                 {% endif %}
 
