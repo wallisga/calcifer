@@ -16,6 +16,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - New Service
+- Add monitoring endpoint: nginx2 (network - 10.66.33.112)
 ## 2025-11-23 - Gavin Wallis - New Platform Feature
 - Explicitly reference git repo as the parent directory to working directory
 ## 2025-11-23 - Gavin Wallis - Platform Feature Fix
