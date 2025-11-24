@@ -444,36 +444,6 @@ def perform_endpoint_check(endpoint) -> bool:
     return is_up
 
 # ============================================================================
-# API ROUTES (for future automation/integrations)
-# ============================================================================
-
-@app.get("/api/work", response_model=List[schemas.WorkItemResponse])
-async def list_work_items(db: Session = Depends(get_db)):
-    """List all work items."""
-    return db.query(models.WorkItem).all()
-
-@app.get("/api/services", response_model=List[schemas.ServiceResponse])
-async def list_services(db: Session = Depends(get_db)):
-    """List all services."""
-    return db.query(models.Service).all()
-
-@app.get("/api/git/status")
-async def git_status():
-    """Get Git repository status."""
-    return git_module.get_status()
-
-@app.get("/api/git/commits")
-async def recent_commits(limit: int = 10):
-    """Get recent commits."""
-    return git_module.get_recent_commits(limit)
-
-# Health check
-@app.get("/health")
-async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
-
-# ============================================================================
 # DOCUMENTATION ROUTES
 # ============================================================================
 

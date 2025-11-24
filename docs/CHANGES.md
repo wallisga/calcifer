@@ -9,6 +9,11 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Fix
+- Remove old test docs
+Move arch patterns guide to the correct path
+Update documentation module to reference the correct path
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Add new static method to work_module to commit changes
 Update route to use new module logic

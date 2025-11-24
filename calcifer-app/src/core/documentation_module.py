@@ -26,18 +26,16 @@ class DocumentationModule:
     """
     
     def __init__(self, docs_path: str = "docs", repo_path: str = ".."):
-        """
-        Initialize documentation core.
-        
-        Args:
-            docs_path: Path to docs directory (relative to repo_path)
-            repo_path: Path to repository root
-        """
-        self.repo_path = Path(repo_path)
+        # Change 1: Use .resolve() for absolute paths
+        self.repo_path = Path(repo_path).resolve()  # ✅ Added .resolve()
         self.docs_path = self.repo_path / docs_path
         
-        # Ensure docs directory exists
-        self.docs_path.mkdir(parents=True, exist_ok=True)
+        # Change 2: Add debug output
+        if not self.docs_path.exists():
+            print(f"📁 Creating docs directory: {self.docs_path}")
+            self.docs_path.mkdir(parents=True, exist_ok=True)
+        else:
+            print(f"📚 Using existing docs directory: {self.docs_path}")
     
     def get_all_docs(self) -> List[Dict[str, str]]:
         """
