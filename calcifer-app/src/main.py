@@ -1,4 +1,4 @@
-"""Main FastAPI application for Calcifer."""
+"""Main FastAPI application for Calcifer - Phase 2 Refactoring Complete."""
 from fastapi import FastAPI, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,9 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 import os
-import json
-import markdown
-from pathlib import Path
+import sys
 
 from . import models, schemas
 from .database import engine, get_db, init_db
@@ -33,37 +31,23 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # ============================================================================
-# HTML ROUTES (UI)
+# HOME / DASHBOARD ROUTES
 # ============================================================================
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: Session = Depends(get_db)):
     """Home/Control Panel page."""
-    # Get active work items
-    active_work = db.query(models.WorkItem).filter(
-        models.WorkItem.status.in_(["planning", "in_progress"])
-    ).order_by(models.WorkItem.started_date.desc()).all()
-    
-    # Get recent completed work
-    completed_work = db.query(models.WorkItem).filter(
-        models.WorkItem.status == "complete"
-    ).order_by(models.WorkItem.completed_date.desc()).limit(5).all()
-    
-    # Get git status
-    git_status = git_module.get_status()
-    
-    # Get recent changes
-    recent_changes = db.query(models.ChangeLog).order_by(
-        models.ChangeLog.date.desc()
-    ).limit(10).all()
+    # ✅ PHASE 1 FIX: Use module method for dashboard data
+    dashboard_data = work_module.get_dashboard_data(db)
     
     return templates.TemplateResponse("home.html", {
         "request": request,
-        "active_work": active_work,
-        "completed_work": completed_work,
-        "git_status": git_status,
-        "recent_changes": recent_changes
+        **dashboard_data
     })
+
+# ============================================================================
+# WORK ITEM ROUTES
+# ============================================================================
 
 @app.get("/work/new", response_class=HTMLResponse)
 async def new_work_form(request: Request):
@@ -87,33 +71,17 @@ async def create_work(
 @app.get("/work/{work_id}", response_class=HTMLResponse)
 async def work_detail(request: Request, work_id: int, db: Session = Depends(get_db)):
     """Work item detail page."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-    if not work_item:
+    detail_data = work_module.get_work_detail(db, work_id)
+    
+    if not detail_data:
         raise HTTPException(status_code=404, detail="Work item not found")
-    
-    # Get associated commits from database
-    db_commits = db.query(models.Commit).filter(
-        models.Commit.work_item_id == work_id
-    ).order_by(models.Commit.committed_date.desc()).all()
-    
-    # Get commits from Git branch (newer approach - shows real branch commits)
-    branch_commits = []
-    if work_item.git_branch:
-        branch_commits = git_module.get_branch_commits(work_item.git_branch)
-    
-    # Get branch merge status
-    branch_merged = False
-    if work_item.git_branch:
-        branch_merged = git_module.is_branch_merged(work_item.git_branch)
-        work_item.branch_merged = branch_merged
-        db.commit()
     
     return templates.TemplateResponse("work_item.html", {
         "request": request,
-        "work": work_item,
-        "commits": db_commits,  # Keep for backward compatibility
-        "branch_commits": branch_commits,  # New: actual branch commits
-        "branch_merged": branch_merged
+        "work": detail_data["work_item"],
+        "commits": detail_data["commits"],
+        "branch_commits": detail_data["branch_commits"],
+        "branch_merged": detail_data["branch_merged"]
     })
 
 @app.post("/work/{work_id}/checklist/{index}")
@@ -194,96 +162,6 @@ async def delete_work_item(work_id: int, db: Session = Depends(get_db)):
     else:
         return RedirectResponse(url=f"/?error={message}", status_code=303)
 
-@app.post("/work/{work_id}/complete")
-async def complete_work(work_id: int, db: Session = Depends(get_db)):
-    """Mark work as complete - simple validation only."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-    if not work_item:
-        raise HTTPException(status_code=404, detail="Work item not found")
-    
-    # Validation checks
-    errors = []
-    
-    # Check 1: All checklist items completed?
-    incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
-    if incomplete_items:
-        errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
-    
-    # Check 2: Branch merged?
-    if work_item.git_branch and not work_item.branch_merged:
-        errors.append("Branch not yet merged to main")
-    
-    # If there are validation errors, show them
-    if errors:
-        error_msg = " | ".join(errors)
-        return RedirectResponse(
-            url=f"/work/{work_id}?error={error_msg}", 
-            status_code=303
-        )
-    
-    # All checks passed - mark complete
-    work_item.status = "complete"
-    work_item.completed_date = datetime.utcnow()
-    db.commit()
-    
-    return RedirectResponse(url="/", status_code=303)
-
-@app.post("/work/{work_id}/merge")
-async def merge_work_branch(work_id: int, db: Session = Depends(get_db)):
-    """Merge work item branch to main - with validation."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-    if not work_item:
-        raise HTTPException(status_code=404, detail="Work item not found")
-    
-    if not work_item.git_branch:
-        return RedirectResponse(
-            url=f"/work/{work_id}?error=No branch associated with this work item",
-            status_code=303
-        )
-    
-    # Check if already merged
-    if git_module.is_branch_merged(work_item.git_branch):
-        work_item.branch_merged = True
-        db.commit()
-        return RedirectResponse(
-            url=f"/work/{work_id}?success=Branch already merged",
-            status_code=303
-        )
-    
-    # VALIDATION: Check if CHANGES.md was updated
-    if not git_module.check_changes_md_updated():
-        return RedirectResponse(
-            url=f"/work/{work_id}?error=Cannot merge: docs/CHANGES.md not updated in this branch",
-            status_code=303
-        )
-    
-    # VALIDATION: Check if branch has commits
-    branch_commits = git_module.get_branch_commits(work_item.git_branch)
-    if not branch_commits:
-        return RedirectResponse(
-            url=f"/work/{work_id}?error=Cannot merge: branch has no commits",
-            status_code=303
-        )
-    
-    # Attempt merge
-    success, result = git_module.merge_branch(work_item.git_branch)
-    
-    if success:
-        # Update work item
-        work_item.branch_merged = True
-        work_item.merge_commit_sha = result
-        db.commit()
-        
-        return RedirectResponse(
-            url=f"/work/{work_id}?success=Branch merged successfully! You can now mark work complete.",
-            status_code=303
-        )
-    else:
-        return RedirectResponse(
-            url=f"/work/{work_id}?error=Merge failed: {result}",
-            status_code=303
-        )
-    
 @app.post("/work/{work_id}/merge-and-complete")
 async def merge_and_complete(work_id: int, db: Session = Depends(get_db)):
     """Validate, merge branch, and complete work item in one action."""
@@ -294,10 +172,15 @@ async def merge_and_complete(work_id: int, db: Session = Depends(get_db)):
     else:
         return RedirectResponse(url=f"/work/{work_id}?error={message}", status_code=303)
 
+# ============================================================================
+# SERVICE CATALOG ROUTES
+# ============================================================================
+
 @app.get("/services", response_class=HTMLResponse)
 async def service_catalog(request: Request, db: Session = Depends(get_db)):
     """Service catalog page."""
-    services = db.query(models.Service).order_by(models.Service.name).all()
+    # ✅ PHASE 1 FIX: Use module method instead of direct query
+    services = service_catalog_module.get_all_services(db)
     return templates.TemplateResponse("service_catalog.html", {
         "request": request,
         "services": services
@@ -329,13 +212,14 @@ async def create_service(
     return RedirectResponse(url="/services", status_code=303)
 
 # ============================================================================
-# ENDPOINT ROUTES (Monitoring)
+# ENDPOINT ROUTES (Monitoring Integration)
 # ============================================================================
 
 @app.get("/endpoints", response_class=HTMLResponse)
 async def endpoint_list(request: Request, db: Session = Depends(get_db)):
     """List all monitored endpoints."""
-    endpoints = db.query(models.Endpoint).order_by(models.Endpoint.name).all()
+    # ✅ PHASE 1 FIX: Use module method instead of direct query
+    endpoints = endpoint_module.get_all_endpoints(db)
     return templates.TemplateResponse("endpoint_list.html", {
         "request": request,
         "endpoints": endpoints
@@ -371,19 +255,15 @@ async def create_endpoint(
 @app.get("/endpoints/{endpoint_id}", response_class=HTMLResponse)
 async def endpoint_detail(request: Request, endpoint_id: int, db: Session = Depends(get_db)):
     """View endpoint details and status."""
-    endpoint = db.query(models.Endpoint).filter(models.Endpoint.id == endpoint_id).first()
-    if not endpoint:
-        raise HTTPException(status_code=404, detail="Endpoint not found")
+    detail_data = endpoint_module.get_endpoint_detail(db, endpoint_id)
     
-    # Get associated work item
-    work_item = None
-    if endpoint.work_item_id:
-        work_item = db.query(models.WorkItem).filter(models.WorkItem.id == endpoint.work_item_id).first()
+    if not detail_data:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
     
     return templates.TemplateResponse("endpoint_detail.html", {
         "request": request,
-        "endpoint": endpoint,
-        "work_item": work_item
+        "endpoint": detail_data["endpoint"],
+        "work_item": detail_data["work_item"]
     })
 
 @app.post("/endpoints/{endpoint_id}/check")
@@ -400,48 +280,19 @@ async def check_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
 
 @app.post("/endpoints/{endpoint_id}/delete")
 async def delete_endpoint(endpoint_id: int, db: Session = Depends(get_db)):
-    """Delete endpoint and optionally its work item."""
-    endpoint = db.query(models.Endpoint).filter(models.Endpoint.id == endpoint_id).first()
-    if not endpoint:
-        raise HTTPException(status_code=404, detail="Endpoint not found")
+    """Delete endpoint."""
+    success, message = endpoint_module.delete_endpoint(db, endpoint_id)
     
-    endpoint_name = endpoint.name
-    work_item_id = endpoint.work_item_id
-    
-    # Delete endpoint from database
-    db.delete(endpoint)
-    db.commit()
-    
-    # Optionally delete documentation file
-    # (keeping it for now - can be useful for audit trail)
-    
-    return RedirectResponse(
-        url=f"/endpoints?success=Endpoint '{endpoint_name}' deleted successfully",
-        status_code=303
-    )
-
-# Helper functions
-
-def generate_endpoint_documentation(name, endpoint_type, target, port, description):
-    """
-    Generate endpoint documentation using monitoring integration.
-    
-    DEPRECATED: Use MonitoringIntegration.generate_endpoint_documentation() directly.
-    Kept for backward compatibility.
-    """
-    return MonitoringIntegration.generate_endpoint_documentation(
-        name, endpoint_type, target, port, description
-    )
-
-def perform_endpoint_check(endpoint) -> bool:
-    """
-    Perform endpoint check using monitoring integration.
-    
-    DEPRECATED: Use monitoring.check_endpoint() directly.
-    Kept for backward compatibility.
-    """
-    is_up, error_msg = monitoring.check_endpoint(endpoint)
-    return is_up
+    if success:
+        return RedirectResponse(
+            url=f"/endpoints?success={message}",
+            status_code=303
+        )
+    else:
+        return RedirectResponse(
+            url=f"/endpoints/{endpoint_id}?error={message}",
+            status_code=303
+        )
 
 # ============================================================================
 # DOCUMENTATION ROUTES
@@ -470,3 +321,79 @@ async def view_doc(request: Request, doc_name: str):
         "doc_title": doc_name.replace(".md", "").replace("_", " ").title(),
         "content": html_content
     })
+
+# ============================================================================
+# SETTINGS ROUTES (✨ NEW - PHASE 1)
+# ============================================================================
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Application settings page."""
+    settings = settings_module.get_all()
+    
+    # Get Git author info
+    try:
+        git_author = git_module.repo.config_reader().get_value("user", "name")
+    except:
+        git_author = "Not configured"
+    
+    # Get Python version
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "repo_path": settings_module.repo_path,
+        "db_path": settings_module.db_path,
+        "git_author": git_author,
+        "python_version": python_version
+    })
+
+@app.post("/settings/update")
+async def update_settings(db: Session = Depends(get_db)):
+    """Update application settings (future implementation)."""
+    # For now, just redirect back
+    return RedirectResponse(url="/settings", status_code=303)
+
+# ============================================================================
+# GIT STATUS ROUTES (✨ NEW - PHASE 1)
+# ============================================================================
+
+@app.get("/git/status", response_class=HTMLResponse)
+async def git_status_page(request: Request):
+    """Git repository status page."""
+    git_status = git_module.get_status()
+    branches = git_module.get_branches()
+    recent_commits = git_module.get_recent_commits(limit=20)
+    
+    return templates.TemplateResponse("git_status.html", {
+        "request": request,
+        "git_status": git_status,
+        "branches": branches,
+        "recent_commits": recent_commits
+    })
+
+# ============================================================================
+# INTEGRATIONS ROUTES (✨ NEW - PHASE 1)
+# ============================================================================
+
+@app.get("/integrations", response_class=HTMLResponse)
+async def integrations_page(request: Request):
+    """Integrations management page."""
+    return templates.TemplateResponse("integrations.html", {
+        "request": request
+    })
+
+@app.get("/integrations/setup/{integration_name}", response_class=HTMLResponse)
+async def integration_setup(request: Request, integration_name: str):
+    """Setup page for a specific integration (future)."""
+    # For now, redirect to main integrations page
+    return RedirectResponse(url="/integrations", status_code=303)
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "version": "1.0.0"}

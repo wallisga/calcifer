@@ -26,6 +26,42 @@ class EndpointModule:
     monitoring integration.
     """
     
+    # ========================================================================
+    # ✨ NEW CONVENIENCE METHOD - PHASE 2
+    # ========================================================================
+    
+    def get_endpoint_detail(self, db: Session, endpoint_id: int) -> Optional[dict]:
+        """
+        Get endpoint with related work item.
+        
+        Args:
+            db: Database session
+            endpoint_id: Endpoint ID
+            
+        Returns:
+            Dictionary with endpoint and work item, or None if not found
+        """
+        endpoint = db.query(Endpoint).filter(Endpoint.id == endpoint_id).first()
+        
+        if not endpoint:
+            return None
+        
+        # Get associated work item
+        work_item = None
+        if endpoint.work_item_id:
+            work_item = db.query(WorkItem).filter(
+                WorkItem.id == endpoint.work_item_id
+            ).first()
+        
+        return {
+            "endpoint": endpoint,
+            "work_item": work_item
+        }
+    
+    # ========================================================================
+    # ENDPOINT CREATION
+    # ========================================================================
+    
     def create_endpoint_with_work_item(
         self,
         db: Session,
@@ -139,7 +175,7 @@ class EndpointModule:
         work_type_display = "New Service"
         documentation_module.append_to_changes_md(changes_entry, author, work_type_display)
         
-        # Stage both files together (FIX from earlier!)
+        # Stage both files together
         git_module.stage_files(['docs/CHANGES.md', f'docs/{doc_filename}'])
         
         # Commit
@@ -216,6 +252,10 @@ class EndpointModule:
         flag_modified(work_item, "checklist")
         db.commit()
     
+    # ========================================================================
+    # ENDPOINT RETRIEVAL
+    # ========================================================================
+    
     def get_endpoint(self, db: Session, endpoint_id: int):
         """Get endpoint by ID."""
         return db.query(Endpoint).filter(Endpoint.id == endpoint_id).first()
@@ -223,6 +263,10 @@ class EndpointModule:
     def get_all_endpoints(self, db: Session):
         """Get all endpoints."""
         return db.query(Endpoint).order_by(Endpoint.name).all()
+    
+    # ========================================================================
+    # ENDPOINT DELETION
+    # ========================================================================
     
     def delete_endpoint(self, db: Session, endpoint_id: int) -> Tuple[bool, str]:
         """Delete endpoint."""

@@ -24,6 +24,99 @@ class WorkModule:
     through checklists, documentation, and commits.
     """
     
+    # ========================================================================
+    # ✨ NEW CONVENIENCE METHODS - PHASE 2
+    # ========================================================================
+    
+    @staticmethod
+    def get_dashboard_data(db: Session) -> dict:
+        """
+        Get all data needed for the home dashboard.
+        
+        This consolidates multiple queries for the home page,
+        making the route simpler and improving consistency.
+        
+        Args:
+            db: Database session
+            
+        Returns:
+            Dictionary with dashboard data
+        """
+        # Active work
+        active_work = db.query(models.WorkItem).filter(
+            models.WorkItem.status.in_(["planning", "in_progress"])
+        ).order_by(models.WorkItem.started_date.desc()).all()
+        
+        # Recently completed work
+        completed_work = db.query(models.WorkItem).filter(
+            models.WorkItem.status == "complete"
+        ).order_by(models.WorkItem.completed_date.desc()).limit(5).all()
+        
+        # Recent changes
+        recent_changes = db.query(models.ChangeLog).order_by(
+            models.ChangeLog.date.desc()
+        ).limit(10).all()
+        
+        # Git status
+        git_status = git_module.get_status()
+        
+        return {
+            "active_work": active_work,
+            "completed_work": completed_work,
+            "recent_changes": recent_changes,
+            "git_status": git_status
+        }
+    
+    @staticmethod
+    def get_work_detail(db: Session, work_id: int) -> Optional[dict]:
+        """
+        Get complete work item detail with all related data.
+        
+        This consolidates multiple queries for the work detail page.
+        
+        Args:
+            db: Database session
+            work_id: Work item ID
+            
+        Returns:
+            Dictionary with work detail or None if not found
+        """
+        # Get work item
+        work_item = db.query(models.WorkItem).filter(
+            models.WorkItem.id == work_id
+        ).first()
+        
+        if not work_item:
+            return None
+        
+        # Get associated commits from database
+        db_commits = db.query(models.Commit).filter(
+            models.Commit.work_item_id == work_id
+        ).order_by(models.Commit.committed_date.desc()).all()
+        
+        # Get commits from Git branch
+        branch_commits = []
+        if work_item.git_branch:
+            branch_commits = git_module.get_branch_commits(work_item.git_branch)
+        
+        # Get branch merge status
+        branch_merged = False
+        if work_item.git_branch:
+            branch_merged = git_module.is_branch_merged(work_item.git_branch)
+            work_item.branch_merged = branch_merged
+            db.commit()
+        
+        return {
+            "work_item": work_item,
+            "commits": db_commits,
+            "branch_commits": branch_commits,
+            "branch_merged": branch_merged
+        }
+    
+    # ========================================================================
+    # WORK ITEM CREATION
+    # ========================================================================
+    
     @staticmethod
     def create_work_item(
         db: Session,
@@ -184,6 +277,10 @@ class WorkModule:
             {"item": "Document changes", "done": False}
         ])
     
+    # ========================================================================
+    # WORK ITEM RETRIEVAL
+    # ========================================================================
+    
     @staticmethod
     def get_work_item(db: Session, work_id: int) -> Optional[models.WorkItem]:
         """Get work item by ID."""
@@ -202,6 +299,10 @@ class WorkModule:
         return db.query(models.WorkItem).filter(
             models.WorkItem.status == "complete"
         ).order_by(models.WorkItem.completed_date.desc()).limit(limit).all()
+    
+    # ========================================================================
+    # WORK ITEM UPDATES
+    # ========================================================================
     
     @staticmethod
     def toggle_checklist_item(db: Session, work_id: int, index: int) -> bool:
@@ -249,6 +350,10 @@ class WorkModule:
         db.commit()
         return work_item
     
+    # ========================================================================
+    # WORK ITEM DELETION
+    # ========================================================================
+    
     @staticmethod
     def delete_work_item(db: Session, work_id: int) -> Tuple[bool, str]:
         """
@@ -291,96 +396,9 @@ class WorkModule:
         except Exception as e:
             return False, f"Delete failed: {str(e)}"
     
-    @staticmethod
-    def validate_for_completion(work_item: models.WorkItem) -> Tuple[bool, List[str]]:
-        """
-        Validate work item is ready for completion.
-        
-        Args:
-            work_item: Work item to validate
-            
-        Returns:
-            Tuple of (is_valid: bool, errors: List[str])
-        """
-        errors = []
-        
-        # Check 1: All checklist items completed?
-        incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
-        if incomplete_items:
-            errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
-        
-        # Check 2: Branch exists?
-        if not work_item.git_branch:
-            errors.append("No Git branch associated with this work item")
-        
-        # Check 3: Branch has commits?
-        if work_item.git_branch:
-            branch_commits = git_module.get_branch_commits(work_item.git_branch)
-            if not branch_commits:
-                errors.append("Branch has no commits")
-        
-        # Check 4: CHANGES.md updated?
-        if work_item.git_branch:
-            if not git_module.check_changes_md_updated():
-                errors.append("docs/CHANGES.md not updated in this branch")
-        
-        return len(errors) == 0, errors
-    
-    @staticmethod
-    def merge_and_complete(db: Session, work_id: int) -> Tuple[bool, str]:
-        """Validate, merge branch, and complete work item."""
-        work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-        if not work_item:
-            return False, "Work item not found"
-        
-        # VALIDATION PHASE
-        errors = []
-        
-        # Check 1: All checklist items completed?
-        incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
-        if incomplete_items:
-            errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
-        
-        # Check 2: Branch exists?
-        if not work_item.git_branch:
-            errors.append("No Git branch associated with this work item")
-        
-        # Check 3: Branch has commits?
-        if work_item.git_branch:
-            branch_commits = git_module.get_branch_commits(work_item.git_branch)
-            if not branch_commits:
-                errors.append("Branch has no commits")
-        
-        # Check 4: CHANGES.md updated?
-        if work_item.git_branch:
-            if not git_module.check_changes_md_updated():
-                errors.append("docs/CHANGES.md not updated in this branch")
-        
-        # If validation fails, stop here
-        if errors:
-            return False, " | ".join(errors)
-        
-        # MERGE PHASE (happens AFTER validation passes)
-        if git_module.is_branch_merged(work_item.git_branch):
-            # Already merged, just update status
-            work_item.branch_merged = True
-        else:
-            # Not merged yet - do the merge now!
-            success, result = git_module.merge_branch(work_item.git_branch)
-            
-            if not success:
-                return False, f"Merge failed: {result}"
-            
-            # Update merge status
-            work_item.branch_merged = True
-            work_item.merge_commit_sha = result
-        
-        # COMPLETION PHASE
-        work_item.status = "complete"
-        work_item.completed_date = datetime.utcnow()
-        db.commit()
-        
-        return True, "Work item completed and merged successfully!"
+    # ========================================================================
+    # GIT OPERATIONS
+    # ========================================================================
     
     @staticmethod
     def commit_work(
@@ -459,7 +477,111 @@ class WorkModule:
             return True, "Changes committed successfully!"
             
         except Exception as e:
-            return False, f"Error: {str(e)}"    
+            return False, f"Error: {str(e)}"
+    
+    # ========================================================================
+    # COMPLETION WORKFLOW
+    # ========================================================================
+    
+    @staticmethod
+    def validate_for_completion(work_item: models.WorkItem) -> Tuple[bool, List[str]]:
+        """
+        Validate work item is ready for completion.
+        
+        Args:
+            work_item: Work item to validate
+            
+        Returns:
+            Tuple of (is_valid: bool, errors: List[str])
+        """
+        errors = []
+        
+        # Check 1: All checklist items completed?
+        incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
+        if incomplete_items:
+            errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
+        
+        # Check 2: Branch exists?
+        if not work_item.git_branch:
+            errors.append("No Git branch associated with this work item")
+        
+        # Check 3: Branch has commits?
+        if work_item.git_branch:
+            branch_commits = git_module.get_branch_commits(work_item.git_branch)
+            if not branch_commits:
+                errors.append("Branch has no commits")
+        
+        # Check 4: CHANGES.md updated?
+        if work_item.git_branch:
+            if not git_module.check_changes_md_updated():
+                errors.append("docs/CHANGES.md not updated in this branch")
+        
+        return len(errors) == 0, errors
+    
+    @staticmethod
+    def merge_and_complete(db: Session, work_id: int) -> Tuple[bool, str]:
+        """
+        Validate, merge branch, and complete work item.
+        
+        Args:
+            db: Database session
+            work_id: Work item ID
+            
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+        if not work_item:
+            return False, "Work item not found"
+        
+        # VALIDATION PHASE
+        errors = []
+        
+        # Check 1: All checklist items completed?
+        incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
+        if incomplete_items:
+            errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
+        
+        # Check 2: Branch exists?
+        if not work_item.git_branch:
+            errors.append("No Git branch associated with this work item")
+        
+        # Check 3: Branch has commits?
+        if work_item.git_branch:
+            branch_commits = git_module.get_branch_commits(work_item.git_branch)
+            if not branch_commits:
+                errors.append("Branch has no commits")
+        
+        # Check 4: CHANGES.md updated?
+        if work_item.git_branch:
+            if not git_module.check_changes_md_updated():
+                errors.append("docs/CHANGES.md not updated in this branch")
+        
+        # If validation fails, stop here
+        if errors:
+            return False, " | ".join(errors)
+        
+        # MERGE PHASE (happens AFTER validation passes)
+        if git_module.is_branch_merged(work_item.git_branch):
+            # Already merged, just update status
+            work_item.branch_merged = True
+        else:
+            # Not merged yet - do the merge now!
+            success, result = git_module.merge_branch(work_item.git_branch)
+            
+            if not success:
+                return False, f"Merge failed: {result}"
+            
+            # Update merge status
+            work_item.branch_merged = True
+            work_item.merge_commit_sha = result
+        
+        # COMPLETION PHASE
+        work_item.status = "complete"
+        work_item.completed_date = datetime.utcnow()
+        db.commit()
+        
+        return True, "Work item completed and merged successfully!"
 
 
 # Singleton instance for easy import
