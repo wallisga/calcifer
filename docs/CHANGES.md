@@ -13,6 +13,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Document Change
+- Updated Development Guide as Phase 2 is now complete with new architectural patterns to consider
 ## 2025-11-24 - Gavin Wallis - Document Change
 - Updated the roadmap documentation as phase 2 is completed
 ## 2025-11-24 - Gavin Wallis - New Document
