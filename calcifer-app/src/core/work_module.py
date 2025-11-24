@@ -309,9 +309,9 @@ class WorkModule:
         if incomplete_items:
             errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
         
-        # Check 2: Branch merged?
-        if work_item.git_branch and not work_item.branch_merged:
-            errors.append("Branch not yet merged to main")
+        # Check 2: Branch exists?
+        if not work_item.git_branch:
+            errors.append("No Git branch associated with this work item")
         
         # Check 3: Branch has commits?
         if work_item.git_branch:
@@ -328,37 +328,54 @@ class WorkModule:
     
     @staticmethod
     def merge_and_complete(db: Session, work_id: int) -> Tuple[bool, str]:
-        """
-        Validate, merge branch, and complete work item.
-        
-        Args:
-            db: Database session
-            work_id: Work item ID
-            
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
+        """Validate, merge branch, and complete work item."""
         work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
         if not work_item:
             return False, "Work item not found"
         
-        # Validation phase
-        is_valid, errors = WorkModule.validate_for_completion(work_item)
-        if not is_valid:
+        # VALIDATION PHASE
+        errors = []
+        
+        # Check 1: All checklist items completed?
+        incomplete_items = [item for item in work_item.checklist if not item.get("done", False)]
+        if incomplete_items:
+            errors.append(f"{len(incomplete_items)} checklist item(s) not completed")
+        
+        # Check 2: Branch exists?
+        if not work_item.git_branch:
+            errors.append("No Git branch associated with this work item")
+        
+        # Check 3: Branch has commits?
+        if work_item.git_branch:
+            branch_commits = git_module.get_branch_commits(work_item.git_branch)
+            if not branch_commits:
+                errors.append("Branch has no commits")
+        
+        # Check 4: CHANGES.md updated?
+        if work_item.git_branch:
+            if not git_module.check_changes_md_updated():
+                errors.append("docs/CHANGES.md not updated in this branch")
+        
+        # If validation fails, stop here
+        if errors:
             return False, " | ".join(errors)
         
-        # Merge phase
+        # MERGE PHASE (happens AFTER validation passes)
         if git_module.is_branch_merged(work_item.git_branch):
+            # Already merged, just update status
             work_item.branch_merged = True
         else:
+            # Not merged yet - do the merge now!
             success, result = git_module.merge_branch(work_item.git_branch)
+            
             if not success:
                 return False, f"Merge failed: {result}"
             
+            # Update merge status
             work_item.branch_merged = True
             work_item.merge_commit_sha = result
         
-        # Completion phase
+        # COMPLETION PHASE
         work_item.status = "complete"
         work_item.completed_date = datetime.utcnow()
         db.commit()
