@@ -5,6 +5,10 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Update the new services route to leverage service catalog module function.
+Also update the checklist routes to leverage work module
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Update the work item delete route to use module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
