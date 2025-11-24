@@ -15,6 +15,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Platform Feature Change
+- Remove imports of schemas, os, typing, and datetime
 ## 2025-11-24 - Gavin Wallis - Document Change
 - Update After Phase 2 Req and Setup Guide docs
 ## 2025-11-24 - Gavin Wallis - Document Change

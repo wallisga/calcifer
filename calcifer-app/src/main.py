@@ -4,13 +4,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
-import os
 import sys
 
-from . import models, schemas
-from .database import engine, get_db, init_db
+from . import models
+from .database import engine, get_db
 from .core import (
     work_module,
     service_catalog_module,
