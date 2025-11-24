@@ -14,7 +14,7 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 ## 2025-11-24 - Gavin Wallis - New Document
 - Create a developer reference markdown document
-Add bullet points to unbulleted change log messages
+- Add bullet points to unbulleted change log messages
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Remove deprecated code for endpoint checks
 - Add missing routes for modules
