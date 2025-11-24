@@ -16,7 +16,9 @@ This guide will walk you through setting up Calcifer, your infrastructure platfo
 
 If anything is missing, complete the prerequisites first.
 
-## Part 1: WSL2 Setup (Windows)
+---
+
+## Part 1: WSL2 Setup (Windows Only)
 
 ### Step 1: Install WSL2
 
@@ -132,52 +134,34 @@ git init
 ### Step 2: Create Directory Structure
 
 ```bash
-mkdir -p calcifer-app/{src,templates,static/{css,js},data}
+mkdir -p calcifer-app/{src/{core,integrations/monitoring},templates,static/{css,js},data}
 mkdir -p infrastructure/{docker-compose/{apps,platform},configs,scripts}
 mkdir -p docs
 mkdir -p .vscode
 ```
 
-### Step 3: Create Files
+**Note:** This creates the Phase 2 architecture structure with `core/` and `integrations/` directories.
 
-**IMPORTANT:** You need to create these files BEFORE proceeding to Python setup. Copy the content from each artifact (shown at the end of the previous conversation) into these files.
+### Step 3: Create Essential Files
 
-**Core Application Files (Create These First):**
+**Core Python Files:**
 
 ```bash
-# Create empty __init__.py
+# Create __init__.py files for Python packages
 touch calcifer-app/src/__init__.py
+touch calcifer-app/src/core/__init__.py
+touch calcifer-app/src/integrations/__init__.py
+touch calcifer-app/src/integrations/monitoring/__init__.py
 
 # Create static placeholders
 touch calcifer-app/static/css/.gitkeep
 touch calcifer-app/static/js/.gitkeep
 ```
 
-**Essential Files to Create Now (copy from artifacts):**
+**Create .gitignore:**
 
-1. **calcifer-app/requirements.txt** - [From artifact: `idp_requirements`]
-   ```bash
-   nano calcifer-app/requirements.txt
-   # Copy content from artifact, save with Ctrl+X, Y, Enter
-   ```
-
-2. **docs/CHANGES.md**
-   ```bash
-   cat > docs/CHANGES.md << 'EOF'
-# Change Log
-
-All infrastructure changes are logged here.
-
-## 2024-11-22 - Initial Setup
-- Created Calcifer application
-- Set up repository structure
-- Configured development environment
-EOF
-   ```
-
-3. **.gitignore**
-   ```bash
-   cat > .gitignore << 'EOF'
+```bash
+cat > .gitignore << 'EOF'
 # Python
 __pycache__/
 *.py[cod]
@@ -216,34 +200,51 @@ Thumbs.db
 *secrets*
 !*-example.*
 EOF
-   ```
+```
 
-**Option A - Manual File Creation (Recommended for Learning):**
-
-Create each file by copying from the artifacts listed below:
-- `calcifer-app/src/database.py` - [From artifact: `idp_database`]
-- `calcifer-app/src/models.py` - [From artifact: `idp_models`]
-- `calcifer-app/src/schemas.py` - [From artifact: `idp_schemas`]
-- `calcifer-app/src/git_integration.py` - [From artifact: `idp_git_integration`]
-- `calcifer-app/src/main.py` - [From artifact: `idp_main_app`]
-- All template files in `calcifer-app/templates/`
-- VS Code settings in `.vscode/`
-
-**Option B - Quick Start Script (Faster):**
-
-If you want to speed this up, I can provide a script that creates all files at once. Let me know if you'd prefer this approach.
-
-**Verification Before Continuing:**
+**Create Initial CHANGES.md:**
 
 ```bash
-# Verify these files exist before moving to Part 3:
+cat > docs/CHANGES.md << 'EOF'
+# Change Log
+
+All infrastructure changes are logged here.
+
+## 2025-11-23 - Initial Setup
+- Created Calcifer application
+- Set up Phase 2 architecture (core modules + integrations)
+- Configured development environment
+EOF
+```
+
+### Step 4: Copy Application Files
+
+You'll need to copy the complete Calcifer application files. These are available from:
+- Your previous Calcifer installation
+- Or from the project repository
+
+**Required files to copy:**
+- `calcifer-app/requirements.txt`
+- `calcifer-app/src/database.py`
+- `calcifer-app/src/models.py`
+- `calcifer-app/src/schemas.py`
+- `calcifer-app/src/main.py`
+- All files in `calcifer-app/src/core/`
+- All files in `calcifer-app/src/integrations/`
+- All template files in `calcifer-app/templates/`
+
+**Verification:**
+
+```bash
+# Verify these files exist
 ls calcifer-app/requirements.txt
-ls calcifer-app/src/database.py
 ls calcifer-app/src/main.py
+ls calcifer-app/src/core/work_module.py
+ls calcifer-app/src/integrations/monitoring/integration.py
 ls docs/CHANGES.md
 ls .gitignore
 
-# If any are missing, create them before continuing!
+# If any are missing, copy them before continuing!
 ```
 
 ---
@@ -277,7 +278,10 @@ pip install -r requirements.txt
 
 ```bash
 python -c "import fastapi; print(fastapi.__version__)"
-# Should print: 0.109.0
+# Should print: 0.109.0 or similar
+
+python -c "import sqlalchemy; print('SQLAlchemy OK')"
+# Should print: SQLAlchemy OK
 ```
 
 ---
@@ -317,8 +321,8 @@ INFO:     Application startup complete.
 
 **Option A - From WSL:**
 ```bash
-curl http://localhost:8000/health
-# Should return: {"status":"healthy"}
+curl http://localhost:8000
+# Should return HTML
 ```
 
 **Option B - From Windows Browser:**
@@ -328,42 +332,83 @@ curl http://localhost:8000/health
 
 ---
 
-## Part 5: Initial Testing Checklist
+## Part 5: Feature Exploration Checklist
 
-Test each feature:
+Test each feature to understand the workflow:
 
+### Work Item Management
 - [ ] Home page loads (http://localhost:8000)
-- [ ] Click "Start New Work" - form appears
+- [ ] Click "New Work" in navbar
 - [ ] Create a test work item:
   - Title: "Test Calcifer Setup"
-  - Type: "Troubleshooting"
+  - Category: "Platform Feature"
+  - Action Type: "New"
   - Description: "Testing the Calcifer application"
 - [ ] Verify work item appears on home page
 - [ ] Click on work item - detail page loads
+- [ ] Notice the Git branch was auto-created
+
+### Checklist & Notes
 - [ ] Toggle checklist items - they save and persist
-- [ ] Add notes in the notes section - saves correctly
-- [ ] Click "Commit Changes" button:
-  - Shows current Git status
-  - Fill out commit message and CHANGES.md entry
-  - Commits successfully
+- [ ] Add notes in the notes section (bottom of page)
+- [ ] Notes save correctly (up to 2000 characters)
+
+### Git Commit Workflow
+- [ ] Make a small change (edit notes again)
+- [ ] Click "Commit Changes" button
+- [ ] See current Git status displayed
+- [ ] Fill out:
+  - Commit message: "Test commit from new setup"
+  - CHANGES.md entry: "Testing commit workflow"
+- [ ] Click "Commit Changes"
 - [ ] Verify commit appears in work item commit list
-- [ ] Complete all checklist items
-- [ ] Click "Merge & Complete":
-  - Validates all requirements
-  - Merges branch to main
-  - Completes work item
-  - Redirects to home with success message
-- [ ] Go to Services page - empty state shows
-- [ ] Click "Add Service" - form appears
+
+### Work Completion
+- [ ] Complete all checklist items (check them off)
+- [ ] Click "Merge & Complete" button
+- [ ] See validation (all requirements must be met)
+- [ ] Work item merges to main branch
+- [ ] Work item marked as complete
+- [ ] Redirects to home with success message
+
+### Service Catalog
+- [ ] Click "Services" in navbar
+- [ ] See empty state (no services yet)
+- [ ] Click "Add Service"
 - [ ] Create test service:
   - Name: "Calcifer"
   - Type: "container"
   - Host: "localhost"
   - URL: "http://localhost:8000"
 - [ ] Verify service appears in catalog
+
+### Monitoring (Integration Feature)
+- [ ] Click "Monitoring" in navbar (right side)
+- [ ] See endpoint list (empty)
+- [ ] Click "Add Endpoint"
+- [ ] Create test endpoint:
+  - Name: "router"
+  - Type: "network"
+  - Target: "10.66.33.1" (or your router IP)
+  - Check interval: 60
+- [ ] Endpoint created with work item
+- [ ] Documentation auto-generated
+- [ ] Initial health check performed
+
+### Documentation Viewer
 - [ ] Click "Docs" in navbar
-- [ ] See PREREQUISITES.md, SETUP_GUIDE.md, CHANGES.md, ROADMAP.md
-- [ ] Click to view rendered documentation
+- [ ] See list of documentation files
+- [ ] Click on "PREREQUISITES.md"
+- [ ] Markdown renders as HTML
+- [ ] See "SETUP_GUIDE.md", "ARCHITECTURE.md", etc.
+
+### Settings & Git Status
+- [ ] Click "Settings" in navbar (right side)
+- [ ] See application settings displayed
+- [ ] Click "Git" in navbar (right side)
+- [ ] See Git repository status
+- [ ] See list of branches
+- [ ] See recent commits
 
 ---
 
@@ -379,11 +424,15 @@ cd ~/calcifer
 git add .
 
 # Create initial commit
-git commit -m "Initial Calcifer setup - application structure and configuration"
+git commit -m "Initial Calcifer setup - Phase 2 architecture"
 
 # Check status
 git status
 # Should show: "nothing to commit, working tree clean"
+
+# See what you've created
+git log --oneline
+# Should show your initial commit
 ```
 
 ---
@@ -392,20 +441,31 @@ git status
 
 Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), then:
 
-1. **Setup Python Virtual Environment**
-   - Type: "Run Task"
-   - Select: "Setup Python Virtual Environment"
-   - This automates Part 3
-
-2. **Run Calcifer (Development)**
+1. **Run Calcifer (Development)**
    - Type: "Run Task"
    - Select: "Run Calcifer (Development)"
    - This starts the server
 
-3. **Open Calcifer Dashboard**
+2. **Open Calcifer Dashboard**
    - Type: "Run Task"
    - Select: "Open Calcifer Dashboard"
    - This opens browser automatically
+
+---
+
+## Understanding the Architecture
+
+Now that Calcifer is running, review these documents to understand how it works:
+
+1. **[ARCHITECTURE.md](../docs/ARCHITECTURE.md)** - High-level overview of the 3-layer architecture
+2. **[ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md)** - Detailed patterns for development
+3. **[DEVELOPER_QUICK_REFERENCE.md](../docs/DEVELOPER_QUICK_REFERENCE.md)** - Daily cheat sheet
+
+**Key Concepts:**
+- **Core Modules** (`src/core/`) - Required functionality (work items, docs, git, etc.)
+- **Integration Modules** (`src/integrations/`) - Optional enhancements (monitoring, etc.)
+- **Routes** (`src/main.py`) - Thin HTTP layer, just calls modules
+- **Models** (`src/models.py`) - Database schema
 
 ---
 
@@ -422,150 +482,65 @@ Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), then:
 - Security risk (root has unlimited access)
 - File permission issues
 - Git commits have wrong ownership
-- Best practice is to use regular user with sudo when needed
 
 **Solution:**
 
 **Step 1: Create a regular user (if you don't have one)**
 
-While logged in as root in WSL:
 ```bash
-# Create user (replace 'gavin' with your desired username - lowercase, no spaces)
-adduser gavin
-
-# Follow prompts:
-# - Set password (save in KeePass!)
-# - Press Enter through the rest (optional info)
-
-# Add user to sudo group (required for admin tasks)
+# While logged in as root in WSL
+adduser gavin  # Replace 'gavin' with your username
 usermod -aG sudo gavin
-
-# Verify user exists
-id gavin
-# Should show: uid=1000(gavin) gid=1000(gavin) groups=1000(gavin),27(sudo)
 ```
 
 **Step 2: Set as default user**
 
-In **PowerShell as Administrator**, try these commands in order until one works:
+In PowerShell as Administrator:
 
 ```powershell
-# First, shut down WSL
 wsl --shutdown
-
-# Check your distribution name
-wsl --list --verbose
-# Note the exact name (e.g., "Ubuntu-22.04", "Ubuntu", etc.)
-
-# Try method 1:
-wsl --set-default-user gavin
-
-# If that fails, try method 2 (MOST LIKELY TO WORK):
 wsl --manage Ubuntu-22.04 --set-default-user gavin
-
-# If that fails, try method 3:
-ubuntu2204 config --default-user gavin
-
-# If that fails, try method 4:
-ubuntu config --default-user gavin
-
-# If that fails, try method 5:
-ubuntu.exe config --default-user gavin
 ```
 
-**Step 3: Restart everything**
-
-```powershell
-# In PowerShell
-wsl --shutdown
-
-# Wait 10 seconds, then open Ubuntu app directly
-# (NOT through VS Code yet)
-```
-
-**Step 4: Verify**
-
-In Ubuntu terminal:
-```bash
-whoami
-# Should show: gavin (or your username)
-
-echo $HOME
-# Should show: /home/gavin
-
-# Test sudo access
-sudo whoami
-# Enter your password
-# Should show: root
-```
-
-**Step 5: Fix VS Code (if still showing root)**
-
-If VS Code still connects as root:
-
-1. Close VS Code completely
-2. Press `Windows Key + R`, type: `%APPDATA%\Code\User\settings.json`, press Enter
-3. Look for: `"remote.WSL.defaultUser": "root"`
-4. Change to: `"remote.WSL.defaultUser": "gavin"` (or remove the line)
-5. Save and close
-6. Open VS Code, connect to WSL
-7. Verify: Terminal should now show `gavin@...`
-
-**Step 6: Reconfigure Git as your user**
+**Step 3: Verify**
 
 ```bash
-# Run these as your regular user (NOT root)
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-git config --global init.defaultBranch main
-
-# Verify
-git config --global --list
+whoami  # Should show: gavin
+echo $HOME  # Should show: /home/gavin
 ```
 
-**Step 7: Regenerate SSH key as your user**
-
-If you created SSH key as root, regenerate:
-
-```bash
-# Check current SSH keys
-ls -la ~/.ssh/
-
-# If empty or you want to regenerate
-ssh-keygen -t ed25519 -C "your.email@example.com"
-# Press Enter for default location
-# Set passphrase (optional but recommended)
-
-# Display public key
-cat ~/.ssh/id_ed25519.pub
-# Copy this entire output
-```
-
-Add to GitHub: https://github.com/settings/keys → "New SSH Key"
-
-**Nuclear Option (if nothing works):**
-
-```powershell
-# In PowerShell as Administrator
-# WARNING: This deletes your WSL installation
-wsl --unregister Ubuntu-22.04
-
-# Reinstall
-wsl --install -d Ubuntu-22.04
-# This time, it WILL prompt you to create a user
-# Create your user when prompted
-```
+See [PREREQUISITES.md](PREREQUISITES.md) for complete troubleshooting steps.
 
 ---
 
 ### Issue: "Module not found" errors
 
+**Symptoms:**
+```
+ModuleNotFoundError: No module named 'core'
+```
+
 **Solution:**
+
+1. Verify directory structure:
+```bash
+ls calcifer-app/src/core/
+# Should show: __init__.py, work_module.py, etc.
+```
+
+2. Ensure __init__.py exists:
+```bash
+touch calcifer-app/src/core/__init__.py
+```
+
+3. Reinstall dependencies:
 ```bash
 cd calcifer-app
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+---
 
 ### Issue: Port 8000 already in use
 
@@ -573,11 +548,15 @@ pip install -r requirements.txt
 ```bash
 # Find process using port 8000
 lsof -i :8000
+
 # Kill it
 kill -9 <PID>
+
 # Or use a different port
 uvicorn src.main:app --reload --port 8001
 ```
+
+---
 
 ### Issue: Database errors
 
@@ -588,6 +567,8 @@ rm -f calcifer-app/data/calcifer.db
 # Restart application - database will be recreated
 ```
 
+---
+
 ### Issue: Git operations failing
 
 **Solution:**
@@ -595,7 +576,12 @@ rm -f calcifer-app/data/calcifer.db
 # Make sure Git is configured
 git config --global user.name "Your Name"
 git config --global user.email "your@email.com"
+
+# Verify
+git config --global --list
 ```
+
+---
 
 ### Issue: Can't access from Windows browser
 
@@ -612,43 +598,73 @@ New-NetFirewallRule -DisplayName "WSL2 Port 8000" -Direction Inbound -LocalPort 
 
 Once Calcifer is working locally:
 
-1. **Document Your Current Infrastructure**
-   - Use Calcifer to create work item: "Document Current Infrastructure"
-   - Add each existing VM to service catalog
-   - Document configurations
+### 1. Document Your Current Infrastructure
+- Create work item: "Document Current Infrastructure"
+- Add each VM to service catalog
+- Add monitoring endpoints for critical infrastructure
+- Document configurations in work item notes
 
-2. **Deploy Calcifer to Proxmox VM**
-   - Create work item: "Deploy Calcifer to services VM"
-   - Use Docker Compose deployment
-   - Access from your network
+### 2. Learn the Development Workflow
+- Read [DEVELOPMENT.md](DEVELOPMENT.md)
+- Review [ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md)
+- Practice creating work items
+- Practice the commit workflow
 
-3. **Start Your Roadmap**
-   - VPN migration
-   - File sharing setup
-   - Monitoring implementation
+### 3. Explore Advanced Features
+- Try creating different work item types
+- Experiment with monitoring endpoints
+- Set up Git remote (GitHub/GitLab)
+- Review the Settings page
+
+### 4. Deploy to Production (Future)
+- Create work item: "Deploy Calcifer to Proxmox VM"
+- Set up Docker Compose deployment
+- Configure reverse proxy
+- Set up automated backups
+
+### 5. Start Your Roadmap
+- Review [ROADMAP.md](../docs/ROADMAP.md)
+- Prioritize features you need
+- Create work items for each task
+- Let Calcifer guide your workflow
 
 ---
 
 ## Summary - What You Should Have Now
 
-- ✅ WSL2 with Ubuntu 22.04
-- ✅ Git configured
-- ✅ VS Code with WSL extension
+- ✅ WSL2 with Ubuntu 22.04 (Windows) or Linux/macOS terminal
+- ✅ Git configured with your identity
+- ✅ VS Code with WSL extension (Windows)
 - ✅ Python 3.11 virtual environment
 - ✅ Calcifer application running locally
-- ✅ Tested all features
+- ✅ Phase 2 architecture (core modules + integrations)
+- ✅ All features tested and working
 - ✅ Initial commit in Git
+- ✅ Understanding of the workflow
 
-**You're ready to start using Calcifer!** 🔥
+**You're ready to use Calcifer!** 🔥
 
-Calcifer will now enforce your workflow:
-- No more forgotten documentation
-- Automatic Git branch management
-- Service catalog stays current
-- Change log updated automatically
+### Calcifer Will Help You:
+- Never forget to document changes
+- Manage Git branches automatically
+- Keep service catalog current
+- Update change log automatically
+- Enforce best practices through the UI
 
 ---
 
-## Questions?
+## Questions or Issues?
 
-If you encounter issues not covered here, document them in Calcifer as a new work item titled "Calcifer Setup Issues" - this becomes part of your knowledge base!
+If you encounter problems not covered here:
+
+1. Check [DEVELOPMENT.md](DEVELOPMENT.md) for development-specific issues
+2. Review [ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md) for code patterns
+3. Create a work item in Calcifer: "Troubleshoot [Your Issue]"
+4. Document the issue and solution in the work item notes
+5. This becomes part of your knowledge base!
+
+---
+
+**Last Updated:** November 23, 2025  
+**For:** Calcifer v2.0 (Phase 2 Architecture Complete)  
+**Next Milestone:** Phase 3 - Testing Framework

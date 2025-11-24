@@ -54,6 +54,7 @@ git --version
 ```bash
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
+git config --global init.defaultBranch main
 ```
 
 ### 2. Git Hosting Account (Optional but Recommended)
@@ -173,7 +174,7 @@ If `whoami` shows `root` instead of your username:
 
 3. Reopen Ubuntu terminal and verify `whoami` shows your username
 
-See SETUP_GUIDE.md Troubleshooting section for detailed instructions.
+See [SETUP_GUIDE.md](SETUP_GUIDE.md) Troubleshooting section for detailed instructions.
 
 ### 6. Docker & Docker Compose (For Deployment)
 
@@ -292,7 +293,15 @@ wsl --version
 ## Next Steps
 
 Once all prerequisites are met, proceed to:
-- `docs/SETUP_GUIDE.md` - Complete setup instructions
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete setup instructions
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development workflow and patterns
+
+## Additional Reading
+
+After setup, review these to understand the architecture:
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
+- **[ARCHITECTURE_PATTERNS_GUIDE.md](ARCHITECTURE_PATTERNS_GUIDE.md)** - Detailed development patterns
+- **[DEVELOPER_QUICK_REFERENCE.md](DEVELOPER_QUICK_REFERENCE.md)** - Daily development cheat sheet
 
 ## Troubleshooting Prerequisites
 
@@ -321,3 +330,8 @@ ssh -T git@github.com
 - Restart VS Code
 - Restart WSL: `wsl --shutdown` then restart Ubuntu
 - Reinstall WSL extension
+
+---
+
+**Last Updated:** November 23, 2025  
+**For:** Calcifer v2.0 (Phase 2 Complete)

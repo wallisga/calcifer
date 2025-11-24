@@ -14,6 +14,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Document Change
+- Update After Phase 2 Req and Setup Guide docs
 ## 2025-11-24 - Gavin Wallis - Document Change
 - Updated Development Guide as Phase 2 is now complete with new architectural patterns to consider
 ## 2025-11-24 - Gavin Wallis - Document Change
