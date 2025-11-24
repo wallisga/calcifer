@@ -289,6 +289,221 @@ Currently, schema changes require manual migration or DB reset.
 
 ---
 
+## Logging
+
+Calcifer uses Python's built-in logging module for structured, observable output.
+
+### Architecture
+
+**Centralized Configuration:**
+- `src/core/logging_module.py` - Single source of logging setup
+- Stdout output (container-friendly)
+- Structured format ready for aggregation
+- JSON format available for production
+
+### Using Logging in Your Code
+
+#### Core Modules
+
+```python
+# At the top of any core module
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.module_name')
+
+# In your code
+logger.info("Work item created successfully")
+logger.debug(f"Generated branch name: {branch_name}")
+logger.warning("Unexpected condition, but continuing")
+logger.error("Failed to create branch", exc_info=True)
+```
+
+#### Integration Modules
+
+```python
+# At the top of any integration module
+from ...core.logging_module import get_logger
+
+logger = get_logger('calcifer.integrations.integration_name')
+
+# Same usage as core modules
+logger.info("Endpoint check completed")
+```
+
+### Log Levels
+
+Use appropriate levels for different situations:
+
+| Level | When to Use | Example |
+|-------|-------------|---------|
+| `DEBUG` | Detailed debugging info | `logger.debug(f"Checklist items: {len(items)}")` |
+| `INFO` | General operational messages | `logger.info("Work item created")` |
+| `WARNING` | Unexpected but handled | `logger.warning("Branch already exists, using existing")` |
+| `ERROR` | Serious problems | `logger.error("Database connection failed", exc_info=True)` |
+| `CRITICAL` | Application cannot continue | `logger.critical("Configuration file missing")` |
+
+**Best Practices:**
+- Use `exc_info=True` with ERROR logs to include stack traces
+- Don't log sensitive data (passwords, tokens, API keys)
+- Use f-strings for readable log messages
+- Keep messages concise but informative
+
+### Log Output Format
+
+**Development (default):**
+```
+2025-11-24 14:30:01 - calcifer.core.work - INFO - Work item created: Test Feature
+2025-11-24 14:30:02 - calcifer.core.git - INFO - Branch created: service/new/test-feature-20251124
+```
+
+**Production (JSON):**
+```json
+{"time":"2025-11-24 14:30:01","name":"calcifer.core.work","level":"INFO","message":"Work item created: Test Feature"}
+```
+
+### Configuring Log Level
+
+Set log level via environment variable:
+
+```bash
+# In development
+export CALCIFER_LOG_LEVEL=DEBUG
+uvicorn src.main:app --reload
+
+# In production
+export CALCIFER_LOG_LEVEL=INFO
+export LOG_FORMAT=json
+```
+
+### Viewing Logs
+
+**Local Development:**
+```bash
+# Logs appear in terminal where uvicorn runs
+uvicorn src.main:app --reload
+
+# Filter by module
+uvicorn src.main:app --reload 2>&1 | grep "calcifer.core.work"
+
+# Save to file
+uvicorn src.main:app --reload 2>&1 | tee calcifer.log
+```
+
+**Docker Containers:**
+```bash
+# View live logs
+docker logs -f calcifer-app
+
+# View logs for specific module
+docker logs calcifer-app 2>&1 | grep "calcifer.core"
+```
+
+### Testing Logging
+
+When writing tests, you can verify logging:
+
+```python
+import logging
+
+def test_something_logs_correctly(caplog):
+    """Test that operation logs the right message."""
+    with caplog.at_level(logging.INFO):
+        module.do_something()
+    
+    assert "Expected message" in caplog.text
+```
+
+### Future: Log Aggregation
+
+The structured logging format is designed for easy integration with:
+- **Grafana Loki** - Log aggregation for Grafana
+- **ELK Stack** - Elasticsearch, Logstash, Kibana
+- **CloudWatch** - AWS log management
+- **Papertrail** - Hosted log management
+
+See ROADMAP.md for log aggregation integration plans.
+
+---
+
+## Common Patterns
+
+### Pattern 1: Operation Start/End
+
+```python
+def create_something(db: Session, name: str):
+    logger.info(f"Creating something: {name}")
+    
+    try:
+        # Do work
+        result = do_work()
+        logger.info(f"Successfully created: {name}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to create {name}: {e}", exc_info=True)
+        raise
+```
+
+### Pattern 2: Performance Timing
+
+```python
+import time
+
+def expensive_operation():
+    start = time.time()
+    logger.debug("Starting expensive operation")
+    
+    # Do work
+    result = do_work()
+    
+    duration = time.time() - start
+    logger.info(f"Operation completed in {duration:.2f}s")
+    return result
+```
+
+### Pattern 3: Conditional Logging
+
+```python
+def process_items(items):
+    logger.info(f"Processing {len(items)} items")
+    
+    for item in items:
+        logger.debug(f"Processing item: {item.id}")
+        # Process item
+    
+    logger.info("All items processed successfully")
+```
+
+---
+
+## Troubleshooting
+
+### No Logs Appearing
+
+**Problem:** No log output when running application
+
+**Solutions:**
+1. Check `setup_logging()` is called in `main.py`
+2. Verify imports are correct
+3. Check log level isn't set to `CRITICAL`
+4. Ensure stdout isn't redirected
+
+### Duplicate Log Messages
+
+**Problem:** Same message appears multiple times
+
+**Solution:** Call `setup_logging()` only once (in main.py startup)
+
+### Logs Not Structured
+
+**Problem:** Print statements still appearing
+
+**Solution:** Search codebase for remaining `print()` statements:
+```bash
+grep -r "print(" calcifer-app/src/ --exclude-dir=__pycache__
+```
+
+---
+
 ## Common Issues
 
 ### Port 8000 in use

@@ -748,6 +748,407 @@ async def perform_action(param: str = Form(...), db: Session = Depends(get_db)):
 
 ---
 
+## Pattern 6: Logging in Modules
+
+### Overview
+
+All modules use centralized logging for observability and debugging. This pattern ensures consistent log output across the application.
+
+### The Logging Architecture
+
+```
+Application Startup (main.py)
+    ↓
+setup_logging() - Configure once
+    ↓
+All modules get_logger('module.name')
+    ↓
+Structured output to stdout
+    ↓
+Ready for log aggregation
+```
+
+---
+
+### Core Module Logging Pattern
+
+**Template:**
+```python
+"""
+Module Name Module
+
+Description of module functionality.
+This is CORE functionality - required for Calcifer to work.
+"""
+
+from sqlalchemy.orm import Session
+from typing import Tuple
+from .logging_module import get_logger
+from .. import models
+
+# Create module-level logger
+logger = get_logger('calcifer.core.module_name')
+
+
+class ModuleNameModule:
+    """Module description."""
+    
+    @staticmethod
+    def do_something(db: Session, param: str) -> Tuple[bool, str]:
+        """
+        Do something with logging.
+        
+        Args:
+            db: Database session
+            param: Parameter
+            
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.info(f"Starting operation with param: {param}")
+        
+        try:
+            # Validation with debug logging
+            if not param:
+                logger.warning("Empty parameter provided, using default")
+                param = "default"
+            
+            # Operation
+            result = perform_operation(param)
+            
+            # Success logging
+            logger.info(f"Operation completed successfully: {result}")
+            return True, "Success"
+            
+        except Exception as e:
+            # Error logging with stack trace
+            logger.error(f"Operation failed: {e}", exc_info=True)
+            return False, str(e)
+
+
+# Singleton
+module_name_module = ModuleNameModule()
+```
+
+---
+
+### Integration Module Logging Pattern
+
+**Template:**
+```python
+"""
+Integration Name Integration
+
+Optional integration for extended functionality.
+"""
+
+from ...core.logging_module import get_logger
+
+# Create integration-level logger
+logger = get_logger('calcifer.integrations.integration_name')
+
+
+class IntegrationClass:
+    """Integration description."""
+    
+    def __init__(self):
+        logger.info("Initializing integration")
+        self.ready = False
+    
+    def check_connectivity(self) -> bool:
+        """Test integration connectivity."""
+        logger.debug("Checking integration connectivity")
+        
+        try:
+            # Test connection
+            result = test_connection()
+            
+            if result:
+                logger.info("Integration connectivity verified")
+                self.ready = True
+            else:
+                logger.warning("Integration connectivity check failed")
+                self.ready = False
+            
+            return result
+        except Exception as e:
+            logger.error(f"Integration connectivity error: {e}", exc_info=True)
+            return False
+
+
+# Singleton
+integration = IntegrationClass()
+```
+
+---
+
+### Route Logging Pattern
+
+**Routes should NOT have loggers** - they're too thin. Logging happens in modules.
+
+**Exception:** You can add request/response logging at the app level:
+
+```python
+# In main.py
+
+from fastapi import Request
+import time
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all HTTP requests."""
+    start_time = time.time()
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Log request details
+    duration = time.time() - start_time
+    logger.info(
+        f"{request.method} {request.url.path} "
+        f"completed in {duration:.3f}s with status {response.status_code}"
+    )
+    
+    return response
+```
+
+---
+
+### Logging Levels Decision Tree
+
+```
+Is it operational information?
+├─ YES → Are you debugging?
+│  ├─ YES → logger.debug()
+│  └─ NO  → logger.info()
+│
+└─ NO  → Is it a problem?
+   ├─ YES → Can the app continue?
+   │  ├─ YES → Is it unexpected?
+   │  │  ├─ YES → logger.warning()
+   │  │  └─ NO  → logger.error(exc_info=True)
+   │  └─ NO  → logger.critical()
+   │
+   └─ NO  → Don't log it
+```
+
+**Examples:**
+
+```python
+# DEBUG - Detailed flow information
+logger.debug(f"Generated branch name: {branch_name}")
+logger.debug(f"Processing {len(items)} checklist items")
+
+# INFO - Important operational events
+logger.info("Work item created successfully")
+logger.info(f"Branch merged: {branch_name} → main")
+
+# WARNING - Unexpected but handled
+logger.warning("Branch already exists, reusing")
+logger.warning("CHANGES.md entry truncated to 500 chars")
+
+# ERROR - Problems that need attention
+logger.error("Failed to create Git branch", exc_info=True)
+logger.error(f"Database operation failed: {e}", exc_info=True)
+
+# CRITICAL - Application cannot continue
+logger.critical("Database file is corrupted")
+logger.critical("Git repository not found")
+```
+
+---
+
+### Anti-Patterns to Avoid
+
+#### ❌ Anti-Pattern 1: Logging in Routes
+
+```python
+# BAD - Don't do this
+@app.post("/resource/action")
+async def action_route(param: str = Form(...)):
+    logger.info(f"Route called with {param}")  # ❌ Too noisy
+    result = module.do_action(param)
+    logger.info(f"Route completed")  # ❌ Redundant
+    return RedirectResponse(...)
+```
+
+**Why it's bad:**
+- Routes should be thin
+- Module already logs the operation
+- HTTP middleware can log requests
+
+**Better:**
+```python
+# GOOD - Module handles logging
+@app.post("/resource/action")
+async def action_route(param: str = Form(...)):
+    result = module.do_action(param)  # Module logs internally
+    return RedirectResponse(...)
+```
+
+---
+
+#### ❌ Anti-Pattern 2: Logging Sensitive Data
+
+```python
+# BAD - Don't log sensitive data
+logger.info(f"User logged in with password: {password}")  # ❌ Security issue
+logger.debug(f"API token: {token}")  # ❌ Credentials exposed
+```
+
+**Better:**
+```python
+# GOOD - Log without sensitive data
+logger.info(f"User logged in: {username}")
+logger.debug("API authentication successful")
+```
+
+---
+
+#### ❌ Anti-Pattern 3: Excessive Debug Logging
+
+```python
+# BAD - Too much noise
+def process_items(items):
+    for item in items:
+        logger.debug(f"Item {item.id}")  # ❌ 1000 items = 1000 logs
+        logger.debug(f"Processing: {item.name}")
+        logger.debug(f"Status: {item.status}")
+        # ... more processing
+```
+
+**Better:**
+```python
+# GOOD - Summary logging
+def process_items(items):
+    logger.info(f"Processing {len(items)} items")
+    
+    for item in items:
+        # Process silently unless error
+        try:
+            process_item(item)
+        except Exception as e:
+            logger.error(f"Failed to process item {item.id}: {e}")
+    
+    logger.info("All items processed successfully")
+```
+
+---
+
+#### ❌ Anti-Pattern 4: Not Using exc_info
+
+```python
+# BAD - No stack trace
+try:
+    result = dangerous_operation()
+except Exception as e:
+    logger.error(f"Operation failed: {e}")  # ❌ No context
+    return False, str(e)
+```
+
+**Better:**
+```python
+# GOOD - Full stack trace
+try:
+    result = dangerous_operation()
+except Exception as e:
+    logger.error(f"Operation failed: {e}", exc_info=True)  # ✅ Stack trace
+    return False, str(e)
+```
+
+---
+
+### Testing with Logging
+
+When writing tests, you can verify logs:
+
+```python
+import logging
+import pytest
+
+def test_operation_logs_success(db_session, caplog):
+    """Test successful operation logs correctly."""
+    with caplog.at_level(logging.INFO):
+        result = module.do_something(db_session, "test")
+    
+    assert "Operation completed successfully" in caplog.text
+    assert result is True
+
+def test_operation_logs_error(db_session, caplog):
+    """Test error operation logs with stack trace."""
+    with caplog.at_level(logging.ERROR):
+        result = module.do_something(db_session, "invalid")
+    
+    assert "Operation failed" in caplog.text
+    assert result is False
+```
+
+---
+
+### Production Considerations
+
+#### Environment-Based Configuration
+
+```python
+# main.py
+import os
+import logging
+
+# Set log level from environment
+log_level_name = os.getenv('CALCIFER_LOG_LEVEL', 'INFO')
+log_level = getattr(logging, log_level_name.upper())
+
+# JSON format for production log aggregation
+format_json = os.getenv('CALCIFER_LOG_FORMAT') == 'json'
+
+setup_logging(level=log_level, format_json=format_json)
+```
+
+#### Docker Configuration
+
+```yaml
+# docker-compose.yml
+services:
+  calcifer:
+    environment:
+      - CALCIFER_LOG_LEVEL=INFO
+      - CALCIFER_LOG_FORMAT=json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+---
+
+### Checklist: Adding Logging to New Modules
+
+When creating a new module:
+
+- [ ] Import logging: `from .logging_module import get_logger`
+- [ ] Create logger: `logger = get_logger('calcifer.core.module_name')`
+- [ ] Log operation start: `logger.info("Starting operation")`
+- [ ] Log success: `logger.info("Operation completed")`
+- [ ] Log errors: `logger.error("Error", exc_info=True)`
+- [ ] Use appropriate levels (DEBUG, INFO, WARNING, ERROR)
+- [ ] Don't log sensitive data
+- [ ] Test that logs appear correctly
+
+---
+
+### Summary: Logging Golden Rules
+
+1. **One Setup:** Call `setup_logging()` once in main.py
+2. **Module Loggers:** Each module gets its own logger
+3. **Appropriate Levels:** DEBUG < INFO < WARNING < ERROR < CRITICAL
+4. **Include Context:** Use exc_info=True for errors
+5. **No Sensitive Data:** Never log passwords, tokens, keys
+6. **Structured Output:** Ready for log aggregation
+7. **Test Logs:** Verify important operations log correctly
+
+---
+
 ## Checklist: Adding New Functionality
 
 ### ✅ Adding a New Feature

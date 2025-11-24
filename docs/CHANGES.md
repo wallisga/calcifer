@@ -19,6 +19,11 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - New Document
+- Update docs with logging guidance
+Create new testing guide
+Create new testing implementation docs for temporary usage
 ## 2025-11-24 - Gavin Wallis - New Platform Feature
 - Added src/core/logging_config.py for centralized logging
 - Updated main.py with startup/shutdown logging

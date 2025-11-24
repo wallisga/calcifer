@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import sys
 import logging
+import os
 
 from .core.logging_module import setup_logging, log_startup, log_shutdown, get_logger
 from . import models
@@ -26,8 +27,11 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Calcifer", version="1.0.0")
 
 # Initialize logging
-setup_logging(level=logging.INFO)
+log_level = getattr(logging, os.getenv('CALCIFER_LOG_LEVEL', 'INFO'))
+format_json = os.getenv('LOG_FORMAT') == 'json'
+setup_logging(level=log_level, format_json=format_json)
 logger = get_logger('calcifer.main')
+
 
 # App Lifecyle Event Handlers
 @app.on_event("startup")

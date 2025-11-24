@@ -76,6 +76,50 @@ Future enhancements and ideas for Calcifer.
 
 ## Medium Priority
 
+### Logging & Observability Integration
+**Status:** Foundation Complete, Integration Planned  
+**Purpose:** Centralized log aggregation and monitoring
+
+**Foundation Complete (Phase 3a):**
+- ✅ Structured logging to stdout
+- ✅ Module-level loggers
+- ✅ JSON format support
+- ✅ Container-friendly output
+
+**Integration Features (Planned):**
+- [ ] Grafana Loki integration
+  - [ ] Promtail sidecar for log collection
+  - [ ] Loki server setup
+  - [ ] Grafana dashboards for log viewing
+  - [ ] Log-based alerting
+- [ ] Log retention policies
+  - [ ] Automatic log rotation
+  - [ ] Archive old logs to S3/object storage
+  - [ ] Configurable retention periods
+- [ ] Advanced log filtering
+  - [ ] Filter by module
+  - [ ] Filter by log level
+  - [ ] Search across all logs
+  - [ ] Correlation with work items
+- [ ] Log-based metrics
+  - [ ] Error rate tracking
+  - [ ] Performance metrics from logs
+  - [ ] Work item completion timing
+  - [ ] Git operation duration
+
+**Alternative Options:**
+- ELK Stack (Elasticsearch, Logstash, Kibana)
+- CloudWatch (if running on AWS)
+- Papertrail (hosted solution)
+- Self-hosted Graylog
+
+**Prerequisites:**
+- [ ] Logging foundation (✅ Complete)
+- [ ] Docker deployment
+- [ ] Monitoring infrastructure
+
+---
+
 ### Advanced Git Features
 - [ ] Compare branches visually
 - [ ] Visual diff viewer
