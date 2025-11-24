@@ -169,91 +169,18 @@ async def commit_changes(
     db: Session = Depends(get_db)
 ):
     """Commit changes and update CHANGES.md."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-    if not work_item:
-        raise HTTPException(status_code=404, detail="Work item not found")
+    success, message = work_module.commit_work(
+        db, work_id, commit_message, changes_entry
+    )
     
-    # Validation
-    if not commit_message.strip():
+    if success:
         return RedirectResponse(
-            url=f"/work/{work_id}/commit?error=Commit message is required",
+            url=f"/work/{work_id}?success={message}",
             status_code=303
         )
-    
-    if not changes_entry.strip():
+    else:
         return RedirectResponse(
-            url=f"/work/{work_id}/commit?error=CHANGES.md entry is required",
-            status_code=303
-        )
-    
-    try:
-        # Make sure we're on the right branch
-        if work_item.git_branch:
-            git_module.checkout_branch(work_item.git_branch)
-        
-        # Update CHANGES.md
-        from datetime import datetime
-        changes_path = os.path.join(git_module.repo_path, "docs", "CHANGES.md")
-        
-# Prepare new entry with proper formatting
-        today = datetime.now().strftime('%Y-%m-%d')
-        author = git_module.repo.config_reader().get_value("user", "name")
-        
-        # Get work type for the entry
-        work_type_display = work_item.full_type if hasattr(work_item, 'full_type') else work_item.work_type
-        
-        # Format: ## YYYY-MM-DD - Author - Work Type
-        # - Change description
-        new_entry = f"## {today} - {author} - {work_type_display}\n- {changes_entry}\n"
-        
-        # Read current content
-        with open(changes_path, 'r') as f:
-            lines = f.readlines()
-        
-        # Find where to insert (after the header, before first ## entry)
-        insert_index = len(lines)  # Default to end
-        for i, line in enumerate(lines):
-            if i > 0 and line.startswith('## '):  # Skip file header
-                insert_index = i
-                break
-        
-        # Insert with proper spacing
-        lines.insert(insert_index, '\n')
-        lines.insert(insert_index + 1, new_entry)
-        
-        # Write updated CHANGES.md
-        with open(changes_path, 'w') as f:
-            f.writelines(lines)
-        
-        # Stage all changes
-        git_module.repo.git.add('-A')
-        
-        # Commit
-        commit_sha = git_module.commit(commit_message)
-        
-        if commit_sha:
-            # Record commit in database
-            commit_record = models.Commit(
-                work_item_id=work_id,
-                commit_sha=commit_sha,
-                commit_message=commit_message
-            )
-            db.add(commit_record)
-            db.commit()
-            
-            return RedirectResponse(
-                url=f"/work/{work_id}?success=Changes committed successfully!",
-                status_code=303
-            )
-        else:
-            return RedirectResponse(
-                url=f"/work/{work_id}/commit?error=Commit failed",
-                status_code=303
-            )
-            
-    except Exception as e:
-        return RedirectResponse(
-            url=f"/work/{work_id}/commit?error=Error: {str(e)}",
+            url=f"/work/{work_id}/commit?error={message}",
             status_code=303
         )
     

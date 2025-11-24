@@ -381,6 +381,85 @@ class WorkModule:
         db.commit()
         
         return True, "Work item completed and merged successfully!"
+    
+    @staticmethod
+    def commit_work(
+        db: Session,
+        work_id: int,
+        commit_message: str,
+        changes_entry: str
+    ) -> Tuple[bool, str]:
+        """
+        Commit changes with automatic CHANGES.md update.
+        
+        Args:
+            db: Database session
+            work_id: Work item ID
+            commit_message: Git commit message
+            changes_entry: Entry to add to CHANGES.md
+            
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        from datetime import datetime
+        from ..models import Commit, WorkItem
+        from . import documentation_module
+        
+        # Get work item
+        work_item = db.query(WorkItem).filter(WorkItem.id == work_id).first()
+        if not work_item:
+            return False, "Work item not found"
+        
+        # Validate inputs
+        if not commit_message.strip():
+            return False, "Commit message is required"
+        
+        if not changes_entry.strip():
+            return False, "CHANGES.md entry is required"
+        
+        try:
+            # Checkout the work item's branch
+            if work_item.git_branch:
+                git_module.checkout_branch(work_item.git_branch)
+            
+            # Get author info
+            try:
+                author = git_module.repo.config_reader().get_value("user", "name")
+            except:
+                author = "System"
+            
+            # Get work type for display
+            work_type_display = work_item.full_type if hasattr(work_item, 'full_type') else "Work"
+            
+            # Update CHANGES.md using documentation_module
+            documentation_module.append_to_changes_md(
+                changes_entry,
+                author,
+                work_type_display
+            )
+            
+            # Stage all changes
+            git_module.repo.git.add('-A')
+            
+            # Commit
+            commit_sha = git_module.commit(commit_message)
+            
+            if not commit_sha:
+                return False, "Commit failed - no changes to commit or git error"
+            
+            # Record commit in database
+            commit_record = Commit(
+                work_item_id=work_id,
+                commit_sha=commit_sha,
+                commit_message=commit_message
+            )
+            db.add(commit_record)
+            db.commit()
+            
+            return True, "Changes committed successfully!"
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}"    
 
 
 # Singleton instance for easy import

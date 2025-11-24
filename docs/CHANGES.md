@@ -8,6 +8,10 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Add new static method to work_module to commit changes
+Update route to use new module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Update the doc-viewer routes to use the documentation module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
