@@ -11,19 +11,23 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - New Document
+- Create a developer reference markdown document
+Add bullet points to unbulleted change log messages
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Remove deprecated code for endpoint checks
-Add missing routes for modules
-Enhance Home Route to use new method in Work Module
-Update Work Detail route to use Work Module
-Update Endpoint Detail route to use Monitoring Integration Module
+- Add missing routes for modules
+- Enhance Home Route to use new method in Work Module
+- Update Work Detail route to use Work Module
+- Update Endpoint Detail route to use Monitoring Integration Module
 ## 2025-11-23 - Gavin Wallis - Platform Feature Fix
 - Remove old test docs
-Move arch patterns guide to the correct path
-Update documentation module to reference the correct path
+- Move arch patterns guide to the correct path
+- Update documentation module to reference the correct path
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Add new static method to work_module to commit changes
-Update route to use new module logic
+- Update route to use new module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Update the doc-viewer routes to use the documentation module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
@@ -71,9 +75,9 @@ Migrate the logic for new work item route to module function
 Update checklist
 ## 2025-11-23 - Gavin Wallis - New Platform Feature
 - Add endpoint model
-Add endpoint wizard page
-Add Endpoint Landing page
-Add Endpoint Detail page
+- Add endpoint wizard page
+- Add Endpoint Landing page
+- Add Endpoint Detail page
 ## 2025-11-23 - Gavin Wallis - Platform Feature Changes
 - Change the work item attributes to include category and type for improved Change Log formatting.
 ## 2025-11-23 - Gavin Wallis - Documentation Changes
