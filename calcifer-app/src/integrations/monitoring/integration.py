@@ -17,6 +17,10 @@ from datetime import datetime
 from typing import Tuple, Optional
 from sqlalchemy.orm import Session
 
+from ...core.logging_module import get_logger
+
+logger = get_logger('calcifer.integrations.monitoring')
+
 
 class MonitoringIntegration:
     """

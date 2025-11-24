@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
 
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.documentation')
+
 
 class DocumentationModule:
     """
@@ -46,10 +50,10 @@ class DocumentationModule:
         
         # Ensure docs directory exists
         if not self.docs_path.exists():
-            print(f"📁 Creating docs directory: {self.docs_path}")
+            logger.info(f"📁 Creating docs directory: {self.docs_path}")
             self.docs_path.mkdir(parents=True, exist_ok=True)
         else:
-            print(f"📚 Using existing docs directory: {self.docs_path}")
+            logger.info(f"📚 Using existing docs directory: {self.docs_path}")
     
     def get_all_docs(self) -> List[Dict[str, str]]:
         """
@@ -136,7 +140,7 @@ class DocumentationModule:
                 f.write(content)
             return True
         except IOError as e:
-            print(f"Error creating doc {doc_name}: {e}")
+            logger.error(f"Error creating doc {doc_name}: {e}", exc_info=True)
             return False
     
     def ensure_changes_md_exists(self) -> bool:
@@ -196,7 +200,7 @@ class DocumentationModule:
             
             return True
         except IOError as e:
-            print(f"Error writing to CHANGES.md: {e}")
+            logger.error(f"Error writing to CHANGES.md: {e}", exc_info=True)
             return False
 
 # Singleton instance for easy import

@@ -11,8 +11,12 @@ This is CORE functionality - required for Calcifer to work.
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Tuple, Optional
+
 from .. import models
 from .git_module import git_module
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.work')
 
 
 class WorkModule:

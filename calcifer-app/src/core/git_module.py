@@ -13,6 +13,10 @@ from datetime import datetime
 from typing import Optional, List, Tuple
 from pathlib import Path
 
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.git')
+
 # Define directory paths for singleton
 module_dir = Path(__file__).resolve().parent  # .../src/core/
 src_dir = module_dir.parent                    # .../src/
@@ -69,7 +73,7 @@ class GitModule:
                 new_branch.checkout()
             return True
         except git.GitCommandError as e:
-            print(f"Error creating branch: {e}")
+            logger.error(f"Error creating branch: {e}", exc_info=True)
             return False
     
     def checkout_branch(self, branch_name: str) -> bool:
@@ -86,7 +90,7 @@ class GitModule:
             self.repo.git.checkout(branch_name)
             return True
         except git.GitCommandError as e:
-            print(f"Error checking out branch: {e}")
+            logger.error(f"Error checking out branch: {e}", exc_info=True)
             return False
     
     def get_branches(self) -> List[str]:
@@ -198,7 +202,7 @@ class GitModule:
             self.repo.index.add(files)
             return True
         except git.GitCommandError as e:
-            print(f"Error staging files: {e}")
+            logger.error(f"Error staging files: {e}", exc_info=True)
             return False
     
     def commit(self, message: str, author_name: Optional[str] = None, 
@@ -222,7 +226,7 @@ class GitModule:
                 commit = self.repo.index.commit(message)
             return commit.hexsha
         except git.GitCommandError as e:
-            print(f"Error committing: {e}")
+            logger.error(f"Error committing: {e}", exc_info=True)
             return None
     
     def get_recent_commits(self, limit: int = 10) -> List[dict]:

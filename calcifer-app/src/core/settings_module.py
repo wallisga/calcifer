@@ -10,6 +10,10 @@ This is CORE functionality - required for Calcifer to work.
 import os
 from typing import Optional, Dict, Any
 
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.settings')
+
 class SettingsModule:
     """
     Core module for managing Calcifer settings and configuration.

@@ -13,8 +13,11 @@ This is CORE functionality - required for Calcifer to work.
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from .. import models
 
+from .. import models
+from .logging_module import get_logger
+
+logger = get_logger('calcifer.core.service_catalog')
 
 class ServiceCatalogModule:
     """

@@ -15,6 +15,9 @@ import json
 from ...core import work_module, documentation_module, git_module
 from ...models import Endpoint, WorkItem
 from .integration import monitoring
+from ...core.logging_module import get_logger
+
+logger = get_logger('calcifer.integrations.monitoring.endpoint')
 
 
 class EndpointModule:

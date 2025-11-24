@@ -5,7 +5,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import sys
+import logging
 
+from .core.logging_module import setup_logging, log_startup, log_shutdown, get_logger
 from . import models
 from .database import engine, get_db
 from .core import (
@@ -22,6 +24,22 @@ models.Base.metadata.create_all(bind=engine)
 
 # FastAPI app
 app = FastAPI(title="Calcifer", version="1.0.0")
+
+# Initialize logging
+setup_logging(level=logging.INFO)
+logger = get_logger('calcifer.main')
+
+# App Lifecyle Event Handlers
+@app.on_event("startup")
+async def startup_event():
+    """Log startup event."""
+    log_startup()
+    logger.info("Calcifer web interface ready at http://localhost:8000")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log shutdown event."""
+    log_shutdown()
 
 # Static files and templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
