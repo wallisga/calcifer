@@ -16,6 +16,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Platform Feature Fix
+- Fix Core Module Imports
 ## 2025-11-24 - Gavin Wallis - Platform Feature Change
 - Remove imports of schemas, os, typing, and datetime
 ## 2025-11-24 - Gavin Wallis - Document Change

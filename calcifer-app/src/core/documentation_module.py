@@ -25,12 +25,27 @@ class DocumentationModule:
     - Documentation file creation
     """
     
-    def __init__(self, docs_path: str = "docs", repo_path: str = ".."):
-        # Change 1: Use .resolve() for absolute paths
-        self.repo_path = Path(repo_path).resolve()  # ✅ Added .resolve()
+    def __init__(self, docs_path: str = "docs", repo_path: str = None):
+        """
+        Initialize documentation core.
+        
+        Args:
+            docs_path: Path to docs directory (relative to repo_path)
+            repo_path: Path to repository root (auto-detected if None)
+        """
+        # Auto-detect repo path if not provided
+        if repo_path is None:
+            # This file is at: calcifer-app/src/core/documentation_module.py
+            # Navigate to repo root: calcifer/
+            module_dir = Path(__file__).resolve().parent  # .../src/core/
+            src_dir = module_dir.parent                    # .../src/
+            app_dir = src_dir.parent                       # .../calcifer-app/
+            repo_path = str(app_dir.parent)                # .../calcifer/
+        
+        self.repo_path = Path(repo_path).resolve()
         self.docs_path = self.repo_path / docs_path
         
-        # Change 2: Add debug output
+        # Ensure docs directory exists
         if not self.docs_path.exists():
             print(f"📁 Creating docs directory: {self.docs_path}")
             self.docs_path.mkdir(parents=True, exist_ok=True)

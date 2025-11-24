@@ -15,7 +15,7 @@ from .core import (
     git_module,
     settings_module
 )
-from .integrations import monitoring, endpoint_module
+from .integrations.monitoring import monitoring, endpoint_module
 
 # Initialize database
 models.Base.metadata.create_all(bind=engine)

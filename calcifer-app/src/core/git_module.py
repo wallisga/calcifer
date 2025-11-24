@@ -11,7 +11,13 @@ import git
 import os
 from datetime import datetime
 from typing import Optional, List, Tuple
+from pathlib import Path
 
+# Define directory paths for singleton
+module_dir = Path(__file__).resolve().parent  # .../src/core/
+src_dir = module_dir.parent                    # .../src/
+app_dir = src_dir.parent                       # .../calcifer-app/
+repo_path = str(app_dir.parent)                # .../calcifer/
 
 class GitModule:
     """
@@ -323,4 +329,4 @@ class GitModule:
 
 
 # Singleton instance for easy import
-git_module = GitModule(repo_path="..")
+git_module = GitModule(repo_path=repo_path)
