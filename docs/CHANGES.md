@@ -3,6 +3,10 @@
 All changes are logged here. These are auto-generated using the Merge & Complete feature.
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Removed the outdated document for nginx2 endpoint
+Migrate the logic for new work item route to module function 
 ## 2025-11-23 - Gavin Wallis - New Service
 - Remove whitespace
 ## 2025-11-23 - Gavin Wallis - New Service
