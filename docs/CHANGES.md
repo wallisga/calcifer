@@ -17,6 +17,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Platform Feature Fix
+- Remove Old Documentation, Services, Settings, Work Items, Git Integration, and Monitoring Integration files before module revamp
 ## 2025-11-24 - Gavin Wallis - Platform Feature Fix
 - Fix Core Module Imports
 ## 2025-11-24 - Gavin Wallis - Platform Feature Change

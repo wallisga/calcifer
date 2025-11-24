@@ -7,7 +7,6 @@ Documentation is stored as markdown files in docs/ directory.
 This is CORE functionality - required for Calcifer to work.
 """
 
-import os
 import markdown
 from pathlib import Path
 from typing import List, Dict, Optional

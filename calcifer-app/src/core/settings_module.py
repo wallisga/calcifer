@@ -9,8 +9,6 @@ This is CORE functionality - required for Calcifer to work.
 
 import os
 from typing import Optional, Dict, Any
-from pathlib import Path
-
 
 class SettingsModule:
     """
