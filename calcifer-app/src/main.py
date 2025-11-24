@@ -129,13 +129,9 @@ async def update_notes(
     db: Session = Depends(get_db)
 ):
     """Update work item notes."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
+    work_item = work_module.update_notes(db, work_id, notes)
     if not work_item:
         raise HTTPException(status_code=404, detail="Work item not found")
-    
-    # Limit to 2000 characters
-    work_item.notes = notes[:2000] if notes else None
-    db.commit()
     
     return RedirectResponse(url=f"/work/{work_id}", status_code=303)
 
@@ -557,44 +553,19 @@ async def health():
 @app.get("/docs-viewer", response_class=HTMLResponse)
 async def docs_list(request: Request):
     """List all documentation files."""
-    docs_path = Path(git_module.repo_path) / "docs"
-    
-    if not docs_path.exists():
-        docs_path.mkdir(parents=True, exist_ok=True)
-    
-    # Get all markdown files
-    md_files = []
-    for file_path in docs_path.glob("*.md"):
-        md_files.append({
-            "name": file_path.name,
-            "title": file_path.stem.replace("_", " ").title(),
-            "path": str(file_path.relative_to(git_module.repo_path))
-        })
-    
-    md_files.sort(key=lambda x: x["name"])
-    
+    docs = documentation_module.get_all_docs()
     return templates.TemplateResponse("docs_list.html", {
         "request": request,
-        "docs": md_files
+        "docs": docs
     })
 
 @app.get("/docs-viewer/{doc_name}", response_class=HTMLResponse)
 async def view_doc(request: Request, doc_name: str):
     """View a specific documentation file."""
-    docs_path = Path(git_module.repo_path) / "docs" / doc_name
+    html_content = documentation_module.render_doc_html(doc_name)
     
-    if not docs_path.exists() or not doc_name.endswith(".md"):
+    if not html_content:
         raise HTTPException(status_code=404, detail="Documentation not found")
-    
-    # Read and render markdown
-    with open(docs_path, "r") as f:
-        content = f.read()
-    
-    # Convert markdown to HTML with extensions
-    html_content = markdown.markdown(
-        content,
-        extensions=['fenced_code', 'tables', 'toc', 'codehilite']
-    )
     
     return templates.TemplateResponse("doc_view.html", {
         "request": request,

@@ -7,6 +7,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Update the doc-viewer routes to use the documentation module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Update the merge_and_complete function to properly validate the branch and not the merge at first
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
