@@ -12,6 +12,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-24 - Gavin Wallis - Document Change
+- Updated the roadmap documentation as phase 2 is completed
 ## 2025-11-24 - Gavin Wallis - New Document
 - Create a developer reference markdown document
 - Add bullet points to unbulleted change log messages

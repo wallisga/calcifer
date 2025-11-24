@@ -4,6 +4,15 @@ Future enhancements and ideas for Calcifer.
 
 ## Recently Completed ✅
 
+### Phase 2 Refactoring (November 2025)
+- ✅ Complete architecture refactoring (service → module pattern)
+- ✅ All routes under 20 lines
+- ✅ Business logic extracted to core modules
+- ✅ Added convenience methods (get_dashboard_data, get_work_detail, etc.)
+- ✅ Implemented missing routes (settings, git status, integrations)
+- ✅ Removed deprecated code
+- ✅ 100% use of module methods in routes
+
 ### Work Item Documentation Enforcement
 - ✅ Added editable notes field (2000 char limit) in work item UI
 - ✅ Required documentation before marking work item complete
@@ -28,6 +37,12 @@ Future enhancements and ideas for Calcifer.
 - ✅ Enhanced checklists by work type
 - ✅ Validation before merge and completion
 
+### Monitoring Integration
+- ✅ Endpoint creation with work item tracking
+- ✅ ICMP ping, TCP port, HTTP/HTTPS health checks
+- ✅ Automatic documentation generation for endpoints
+- ✅ Status tracking and history
+
 ## High Priority
 
 ### Service Catalog Enhancements
@@ -45,6 +60,13 @@ Future enhancements and ideas for Calcifer.
 - [ ] Search functionality across all docs
 - [ ] Documentation review workflow
 
+### Testing Framework
+- [ ] Add pytest infrastructure
+- [ ] Unit tests for core modules
+- [ ] Integration tests for routes
+- [ ] Mock Git operations for testing
+- [ ] CI/CD pipeline setup
+
 ### Backup & Recovery
 - [ ] Automated database backups
 - [ ] Export/import functionality
@@ -59,18 +81,22 @@ Future enhancements and ideas for Calcifer.
 - [ ] Visual diff viewer
 - [ ] Merge conflict detection and resolution
 - [ ] Create Pull Request button (for GitHub/GitLab integrations)
+- [ ] Git remote push/pull operations
 
 ### Integrations Framework
 - [ ] Plugin system for custom integrations
 - [ ] Integration marketplace/catalog
 - [ ] OAuth support for third-party services
 - [ ] Webhook system for automation
+- [ ] Integration enable/disable toggles
 
-### Monitoring Integration
+### Monitoring Integration Enhancements
 - [ ] Uptime Kuma API integration
 - [ ] Grafana dashboard embedding
 - [ ] Alert correlation with work items
 - [ ] Incident management workflow
+- [ ] WMI checks for Windows hosts
+- [ ] SNMP checks for network devices
 
 ### Collaboration
 - [ ] Multi-user support with authentication
@@ -95,6 +121,7 @@ Future enhancements and ideas for Calcifer.
 - [ ] Infrastructure change frequency graphs
 - [ ] Service uptime reports
 - [ ] Burndown charts
+- [ ] Custom dashboards
 
 ### Advanced Work Item Features
 - [ ] Work item templates (create from template)
@@ -102,6 +129,7 @@ Future enhancements and ideas for Calcifer.
 - [ ] Work item relationships (blocks, depends on)
 - [ ] Tags and labels
 - [ ] Work item search and filters
+- [ ] Bulk operations
 
 ## Repository Structure
 
@@ -110,16 +138,31 @@ Future enhancements and ideas for Calcifer.
 calcifer/                  # Git repo root
 ├── calcifer-app/         # Application code
 │   ├── src/             # Python source
-│   ├── templates/       # HTML templates
-│   ├── data/            # SQLite database (gitignored)
+│   │   ├── main.py     # HTTP routes (thin layer)
+│   │   ├── core/       # Core modules (required)
+│   │   │   ├── work_module.py
+│   │   │   ├── service_catalog_module.py
+│   │   │   ├── documentation_module.py
+│   │   │   ├── git_module.py
+│   │   │   └── settings_module.py
+│   │   ├── integrations/  # Optional integrations
+│   │   │   └── monitoring/
+│   │   ├── models.py   # Database models
+│   │   ├── schemas.py  # Pydantic schemas
+│   │   └── database.py # DB configuration
+│   ├── templates/      # HTML templates
+│   ├── static/         # CSS/JS
+│   ├── data/           # SQLite database (gitignored)
 │   └── requirements.txt
-├── docs/                 # Documentation (in repo)
+├── docs/                # Documentation (in repo)
 │   ├── ROADMAP.md
 │   ├── SETUP_GUIDE.md
 │   ├── PREREQUISITES.md
-│   ├── CHANGES.md       # Local changes (tracked in private repo)
+│   ├── ARCHITECTURE.md
+│   ├── ARCHITECTURE_PATTERNS_GUIDE.md
+│   ├── CHANGES.md      # Local changes (tracked)
 │   └── ...
-├── infrastructure/       # Future: Deployed configs
+├── infrastructure/      # Future: Deployed configs
 └── README.md
 ```
 
@@ -128,22 +171,62 @@ calcifer/                  # Git repo root
 - Docker Compose templates for common stacks
 - Ansible playbooks integration
 - Terraform module examples
+- Kubernetes manifests
 
 ## Technical Debt / Improvements
 
-- [ ] Add automated tests (pytest)
+- [ ] Add automated tests (pytest) ← **HIGH PRIORITY**
 - [ ] Add CI/CD pipeline (GitHub Actions)
 - [ ] Database migrations (Alembic)
 - [ ] API rate limiting
 - [ ] Better error handling and logging
 - [ ] Performance optimization for large datasets
 - [ ] Add API documentation (Swagger/OpenAPI)
+- [ ] Security audit and hardening
+
+## Architecture Evolution
+
+### Phase 1: Initial Build ✅ (Complete)
+- Basic FastAPI application
+- SQLite database
+- Git integration
+- Work item tracking
+- Service catalog
+
+### Phase 2: Refactoring ✅ (Complete - November 2025)
+- Three-layer architecture (HTTP/Service/Data)
+- Core vs Integration separation
+- Business logic extraction to modules
+- Route simplification
+- Module convenience methods
+- Documentation alignment
+
+### Phase 3: Testing & Quality (Next - December 2025)
+- [ ] Pytest infrastructure
+- [ ] Core module tests
+- [ ] Integration tests
+- [ ] CI/CD pipeline
+- [ ] Code coverage reporting
+
+### Phase 4: Advanced Features (Q1 2026)
+- [ ] Multi-user support
+- [ ] Authentication/authorization
+- [ ] Enhanced integrations
+- [ ] Advanced monitoring
 
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose new features or contribute to this roadmap.
 
+## Documentation
+
+For detailed architecture information:
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - High-level overview
+- **[ARCHITECTURE_PATTERNS_GUIDE.md](ARCHITECTURE_PATTERNS_GUIDE.md)** - Detailed patterns and best practices
+- **[DEVELOPER_QUICK_REFERENCE.md](DEVELOPER_QUICK_REFERENCE.md)** - Daily development cheat sheet
+
 ---
 
-**Last Updated**: 2024-11-22
-**Status**: Active development, private repo phase
+**Last Updated**: November 23, 2025  
+**Status**: Active development, Phase 2 complete  
+**Next Milestone**: Phase 3 - Testing Framework
