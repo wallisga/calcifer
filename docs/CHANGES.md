@@ -4,6 +4,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-23 - Gavin Wallis - Platform Feature Change
+- Update the work item delete route to use module logic
 ## 2025-11-23 - Gavin Wallis - Platform Feature Change
 - Removed the outdated document for nginx2 endpoint
 Migrate the logic for new work item route to module function 

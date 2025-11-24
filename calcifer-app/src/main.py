@@ -274,46 +274,12 @@ async def commit_changes(
 @app.post("/work/{work_id}/delete")
 async def delete_work_item(work_id: int, db: Session = Depends(get_db)):
     """Delete work item and its Git branch."""
-    work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
-    if not work_item:
-        raise HTTPException(status_code=404, detail="Work item not found")
+    success, message = work_module.delete_work_item(db, work_id)
     
-    branch_name = work_item.git_branch
-    
-    try:
-        # Delete Git branch if it exists
-        if branch_name:
-            try:
-                # Switch to main first
-                git_module.checkout_branch("main")
-                
-                # Delete local branch
-                git_module.repo.delete_head(branch_name, force=True)
-                
-                # Try to delete remote branch (if it exists)
-                try:
-                    git_module.repo.git.push('origin', '--delete', branch_name)
-                except:
-                    pass  # Remote branch might not exist, that's ok
-                    
-            except Exception as e:
-                # Branch deletion failed, but continue with work item deletion
-                print(f"Branch deletion failed: {e}")
-        
-        # Delete work item from database (cascades to commits)
-        db.delete(work_item)
-        db.commit()
-        
-        return RedirectResponse(
-            url="/?success=Work item deleted successfully",
-            status_code=303
-        )
-        
-    except Exception as e:
-        return RedirectResponse(
-            url=f"/work/{work_id}?error=Delete failed: {str(e)}",
-            status_code=303
-        )    
+    if success:
+        return RedirectResponse(url="/?success=Work item deleted successfully", status_code=303)
+    else:
+        return RedirectResponse(url=f"/?error={message}", status_code=303)
 
 @app.post("/work/{work_id}/complete")
 async def complete_work(work_id: int, db: Session = Depends(get_db)):
