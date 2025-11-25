@@ -56,6 +56,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-25 - Gavin Wallis - Document Change
+- Update Roadmap and Testing Guide
 ## 2025-11-25 - Gavin Wallis - New Platform Feature
 - Add Integration Testing for the Core Module
 ## 2025-11-25 - Test User - Service Fix
