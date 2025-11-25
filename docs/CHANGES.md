@@ -20,6 +20,11 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-25 - Gavin Wallis - New Platform Feature
+- Update documentation going over pytest patterns for Calcifer
+- Update requirements.txt with pytest dependencies
+- Add basic pytest structure and unit tests for the core work module
 ## 2025-11-24 - Gavin Wallis - New Document
 - Update docs with logging guidance
 Create new testing guide

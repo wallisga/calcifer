@@ -35,3 +35,9 @@ Thumbs.db
 *credentials*
 *secrets*
 !*-example.*
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml

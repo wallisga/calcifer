@@ -826,4 +826,75 @@ from src.database import Base
 
 ---
 
+🐛 Common Issues & Solutions
+Issue 1: Mocking Module-Level Imports
+Problem:
+python# In work_module.py
+from .git_module import git_module
+
+# Trying to mock with:
+monkeypatch.setattr('src.core.work_module.git_module', mock)
+# ERROR: 'WorkModule' object has no attribute 'git_module'
+Why it fails:
+
+monkeypatch.setattr('src.core.work_module.git_module', mock) resolves src.core.work_module to the singleton instance (work_module = WorkModule()), not the module
+The singleton doesn't have a git_module attribute - it's a module-level import
+
+Solution:
+pythonimport sys
+work_module_actual = sys.modules['src.core.work_module']
+monkeypatch.setattr(work_module_actual, 'git_module', mock)
+Key Insight: Use sys.modules to get the actual module object, not what the import path resolves to.
+
+Issue 2: Static Mock Return Values
+Problem:
+pythonmock.generate_branch_name.return_value = "test/branch/name-20251124"
+
+# Both calls return the same value!
+branch1 = git_module.generate_branch_name("service", "new", "Feature A")  # "test/branch/name-20251124"
+branch2 = git_module.generate_branch_name("platform", "fix", "Bug B")    # "test/branch/name-20251124"
+Why it fails:
+
+return_value is static - returns the same thing every time
+Tests expecting unique values will fail
+
+Solution:
+python# Use side_effect with a lambda for dynamic behavior
+mock.generate_branch_name.side_effect = lambda cat, act, title: f"{cat}/{act}/{title.lower().replace(' ', '-')}-20251124"
+Key Insight:
+
+return_value = Static, same every time
+side_effect = Dynamic, can vary by input or call order
+
+
+Issue 3: Missing self in Test Class Methods
+Problem:
+pythonclass TestSomething:
+    def test_method(db_session, mock_git):  # ❌ Missing 'self'
+        pass
+Error:
+AttributeError: 'TestSomething' object has no attribute 'add'
+Solution:
+pythonclass TestSomething:
+    def test_method(self, db_session, mock_git):  # ✅ Has 'self'
+        pass
+
+📋 Updated Mock Best Practices
+What TO Mock:
+
+✅ File system operations
+✅ Network calls
+✅ External process calls (Git operations)
+✅ Time-dependent operations
+✅ Any I/O that touches real resources
+
+What NOT to Mock:
+
+❌ Pure functions (no side effects)
+❌ Simple data transformations
+❌ Validation logic
+❌ Business rules
+
+---
+
 Ready to implement? Let me know when you want to start! 🔥

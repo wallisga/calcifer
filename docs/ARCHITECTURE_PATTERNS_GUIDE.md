@@ -1084,6 +1084,388 @@ def test_operation_logs_error(db_session, caplog):
 ```
 
 ---
+# Architecture Patterns Guide - Testing Section
+
+**Add this as a new section to ARCHITECTURE_PATTERNS_GUIDE.md**
+
+---
+
+## Pattern 7: Testing Modules
+
+### Testing Philosophy in Calcifer
+
+Calcifer uses a **layered testing approach** that matches the three-layer architecture:
+
+```
+Unit Tests      → Test modules in isolation (fast, focused)
+Integration Tests → Test module interactions (slower, comprehensive)
+E2E Tests        → Test complete workflows (slowest, full system)
+```
+
+### Test Directory Structure
+
+```
+tests/
+├── unit/                    # Fast, isolated tests
+│   ├── test_core/
+│   │   ├── test_work_module.py
+│   │   ├── test_service_catalog_module.py
+│   │   └── test_documentation_module.py
+│   └── test_integrations/
+│       └── test_monitoring/
+├── integration/             # Module interaction tests
+│   ├── test_work_flow.py
+│   └── test_git_integration.py
+└── e2e/                     # Full workflow tests
+    └── test_complete_work_flow.py
+```
+
+---
+
+### Unit Testing Core Modules
+
+**Goal:** Test business logic in isolation without external dependencies.
+
+#### ✅ Good Unit Test Example
+
+```python
+@pytest.mark.unit
+def test_create_work_item(self, db_session, mock_git):
+    """Test work item creation."""
+    # Arrange
+    title = "Test Feature"
+    category = "service"
+    
+    # Act
+    result = work_module.create_work_item(
+        db_session, title, category, "new"
+    )
+    
+    # Assert
+    assert result is not None
+    assert result.title == title
+    assert result.status == "planning"
+    
+    # Verify Git operation was called
+    mock_git.create_branch.assert_called_once()
+```
+
+**Why this is good:**
+- ✅ Tests business logic (work item creation)
+- ✅ Uses in-memory database (fast)
+- ✅ Mocks external dependencies (Git)
+- ✅ Follows AAA pattern
+- ✅ Verifies side effects (Git call)
+
+#### ❌ Bad Unit Test Example
+
+```python
+def test_create_work_item_bad(self):
+    """DON'T DO THIS"""
+    # ❌ Uses real database
+    db = Session(bind=engine)
+    
+    # ❌ Makes actual Git operations
+    result = work_module.create_work_item(
+        db, "Test", "service", "new"
+    )
+    
+    # ❌ Checks implementation details
+    assert result.checklist[0]["item"] == "exact text"
+```
+
+**Why this is bad:**
+- ❌ Uses real database (slow, fragile)
+- ❌ Performs real Git operations (side effects)
+- ❌ Tests implementation details (brittle)
+
+---
+
+### Mocking Guidelines
+
+#### When to Mock
+
+**✅ DO Mock:**
+- Git operations (`git_module.create_branch`, `commit`, etc.)
+- File system operations (`open`, `write`)
+- Network calls (APIs, database connections)
+- Time-dependent operations (`datetime.now()`)
+- External processes (`subprocess.run`)
+
+**❌ DON'T Mock:**
+- Pure functions (no side effects)
+- Simple validations
+- Data transformations
+- Business logic calculations
+
+#### How to Mock Module-Level Imports
+
+**Problem:** Modules use singleton instances:
+```python
+# In work_module.py
+from .git_module import git_module  # This is the singleton
+
+# Can't mock with:
+monkeypatch.setattr('src.core.work_module.git_module', mock)
+# ERROR: Resolves to WorkModule() instance, not the module!
+```
+
+**Solution:** Use `sys.modules`:
+```python
+import sys
+work_module_actual = sys.modules['src.core.work_module']
+monkeypatch.setattr(work_module_actual, 'git_module', mock)
+```
+
+#### Dynamic Mock Behavior
+
+**Static return values (bad):**
+```python
+mock.generate_branch_name.return_value = "static-value"
+# Always returns same thing!
+```
+
+**Dynamic behavior (good):**
+```python
+mock.generate_branch_name.side_effect = lambda cat, act, title: \
+    f"{cat}/{act}/{title.lower().replace(' ', '-')}"
+# Returns different values based on inputs!
+```
+
+---
+
+### Testing Checklist for New Modules
+
+When adding tests for a new module:
+
+- [ ] **Create test file** in `tests/unit/test_core/test_<module>.py`
+- [ ] **Group tests by functionality** using test classes
+- [ ] **Add pytest markers** (`@pytest.mark.unit`)
+- [ ] **Use fixtures** for database and mocks
+- [ ] **Follow AAA pattern** (Arrange, Act, Assert)
+- [ ] **Test happy path** first
+- [ ] **Add error cases** second
+- [ ] **Test edge cases** third
+- [ ] **Verify mock calls** for side effects
+- [ ] **Check coverage** (`pytest --cov=src`)
+- [ ] **Aim for 70%+ coverage** on core modules
+
+---
+
+### Integration Testing
+
+**Goal:** Test that modules work together correctly.
+
+```python
+@pytest.mark.integration
+def test_work_item_with_real_git(temp_git_repo, db_session):
+    """Test work item creation with real Git operations."""
+    # Use real Git repo (from fixture)
+    result = work_module.create_work_item(
+        db_session, "Test", "service", "new"
+    )
+    
+    # Verify Git branch actually created
+    branches = git_module.get_branches()
+    assert result.git_branch in branches
+```
+
+**When to write integration tests:**
+- Testing module interactions
+- Verifying Git operations actually work
+- Testing file system operations
+- Validating database transactions
+
+---
+
+### Coverage Goals
+
+| Module Type | Target Coverage | Reasoning |
+|-------------|----------------|-----------|
+| Core modules | 70-80% | Critical business logic |
+| Integrations | 60-70% | External dependencies |
+| Routes | 50-60% | Thin layer, integration tests cover |
+| Models | 80-90% | Simple, easy to test |
+
+**Don't chase 100%:**
+- Some code is hard to test (error recovery, rare edge cases)
+- Focus on critical paths and business logic
+- Integration tests provide safety net
+
+---
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# Only unit tests (fast)
+pytest -m unit
+
+# With coverage
+pytest --cov=src --cov-report=term --cov-report=html
+
+# Specific test file
+pytest tests/unit/test_core/test_work_module.py
+
+# Specific test
+pytest tests/unit/test_core/test_work_module.py::TestWorkModuleCreate::test_create_work_item_basic
+
+# Verbose output
+pytest -v
+```
+
+---
+
+### Test Organization Example
+
+```python
+"""
+Unit tests for work_module.
+
+Tests work item creation, updates, and lifecycle management.
+"""
+
+import pytest
+from src.core import work_module
+from src import models
+
+
+class TestWorkModuleCreate:
+    """Test work item creation."""
+    
+    @pytest.mark.unit
+    def test_create_work_item_basic(self, db_session, mock_git):
+        """Test basic work item creation."""
+        # Arrange
+        # Act
+        # Assert
+        pass
+    
+    @pytest.mark.unit
+    def test_create_with_invalid_category(self, db_session, mock_git):
+        """Test error handling for invalid category."""
+        # Arrange
+        # Act
+        # Assert
+        pass
+
+
+class TestWorkModuleUpdate:
+    """Test work item updates."""
+    
+    @pytest.mark.unit
+    def test_toggle_checklist_item(self, db_session, sample_work_item):
+        """Test toggling checklist completion."""
+        # Arrange
+        # Act
+        # Assert
+        pass
+```
+
+---
+
+### Anti-Patterns to Avoid
+
+#### ❌ Testing Implementation Details
+
+```python
+# BAD - Tests how it works, not what it does
+def test_bad():
+    result = module.create_thing(db, "test")
+    assert result.checklist[0]["item"] == "exact checklist text"
+    # Breaks if checklist wording changes!
+```
+
+**Better:**
+```python
+# GOOD - Tests behavior
+def test_good():
+    result = module.create_thing(db, "test")
+    assert len(result.checklist) > 0
+    assert result.status == "planning"
+```
+
+#### ❌ Over-Mocking
+
+```python
+# BAD - Mocking pure functions
+mock.generate_branch_name.return_value = "static"
+# Now you can't test the branch name generation!
+```
+
+**Better:**
+```python
+# GOOD - Let pure functions run
+# Only mock side effects like create_branch, commit
+```
+
+#### ❌ Leaking State Between Tests
+
+```python
+# BAD - Modifying global state
+def test_bad_1():
+    global_config.setting = "value"
+    # Next test sees this change!
+```
+
+**Better:**
+```python
+# GOOD - Use fixtures that reset state
+@pytest.fixture
+def clean_config():
+    original = global_config.setting
+    yield
+    global_config.setting = original
+```
+
+---
+
+### Quick Reference: Fixture Patterns
+
+```python
+# Simple database fixture
+def test_with_db(db_session):
+    item = models.Item(name="test")
+    db_session.add(item)
+    db_session.commit()
+    # Auto-rolled back!
+
+# Pre-created sample data
+def test_with_sample(db_session, sample_work_item):
+    result = module.get_work_item(db_session, sample_work_item.id)
+    assert result is not None
+
+# Mocked dependencies
+def test_with_mock(db_session, mock_git):
+    module.create_work_item(db_session, "Test", "service", "new")
+    mock_git.create_branch.assert_called_once()
+
+# Combine multiple fixtures
+def test_complex(db_session, sample_work_item, mock_git):
+    # Has DB + sample data + mocked Git
+    pass
+```
+
+---
+
+## Summary: Testing in Calcifer
+
+**The Golden Rules:**
+1. **Unit tests** test modules in isolation
+2. **Mock external dependencies** (Git, file I/O, network)
+3. **Don't mock pure functions** (let logic run)
+4. **Integration tests** verify modules work together
+5. **Aim for 70%+ coverage** on core modules
+6. **Test behavior, not implementation**
+
+**Related Documentation:**
+- [TESTING_PATTERNS.md](../TESTING_PATTERNS.md) - Overall philosophy
+- [PYTEST_IMPLEMENTATION_GUIDE.md](../PYTEST_IMPLEMENTATION_GUIDE.md) - Setup guide
+
+
+---
 
 ### Production Considerations
 
@@ -1283,3 +1665,6 @@ if success:
 ---
 
 This pattern documentation ensures Calcifer stays clean, maintainable, and easy to extend! 🔥
+
+**Last Updated:** November 25, 2025  
+**Status:** Testing patterns documented
