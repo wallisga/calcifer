@@ -39,11 +39,11 @@ class DocumentationModule:
         # Auto-detect repo path if not provided
         if repo_path is None:
             # This file is at: calcifer-app/src/core/documentation_module.py
-            # Navigate to repo root: calcifer/
+            # Navigate to repo root: calcifer/calcifer-app
             module_dir = Path(__file__).resolve().parent  # .../src/core/
             src_dir = module_dir.parent                    # .../src/
             app_dir = src_dir.parent                       # .../calcifer-app/
-            repo_path = str(app_dir.parent)                # .../calcifer/
+            repo_path = str(app_dir)
         
         self.repo_path = Path(repo_path).resolve()
         self.docs_path = self.repo_path / docs_path
