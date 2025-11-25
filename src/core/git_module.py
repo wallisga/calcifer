@@ -21,7 +21,7 @@ logger = get_logger('calcifer.core.git')
 module_dir = Path(__file__).resolve().parent  # .../src/core/
 src_dir = module_dir.parent                    # .../src/
 app_dir = src_dir.parent                       # .../calcifer-app/
-repo_path = str(app_dir.parent)                # .../calcifer/
+repo_path = str(app_dir)               
 
 class GitModule:
     """
