@@ -28,6 +28,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-11-25 - Gavin Wallis - Service Fix
+- Finished
 ## 2025-11-25 - Gavin Wallis - New Service
 - Test entry for detail
 ## 2025-11-25 - Gavin Wallis - New Service
