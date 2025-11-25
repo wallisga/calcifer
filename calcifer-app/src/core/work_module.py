@@ -15,6 +15,7 @@ from typing import List, Tuple, Optional
 from .. import models
 from .git_module import git_module
 from .logging_module import get_logger
+from .documentation_module import documentation_module
 
 logger = get_logger('calcifer.core.work')
 
@@ -423,12 +424,9 @@ class WorkModule:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        from datetime import datetime
-        from ..models import Commit, WorkItem
-        from . import documentation_module
         
         # Get work item
-        work_item = db.query(WorkItem).filter(WorkItem.id == work_id).first()
+        work_item = db.query(models.WorkItem).filter(models.WorkItem.id == work_id).first()
         if not work_item:
             return False, "Work item not found"
         
@@ -470,7 +468,7 @@ class WorkModule:
                 return False, "Commit failed - no changes to commit or git error"
             
             # Record commit in database
-            commit_record = Commit(
+            commit_record = models.Commit(
                 work_item_id=work_id,
                 commit_sha=commit_sha,
                 commit_message=commit_message

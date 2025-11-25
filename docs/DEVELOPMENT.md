@@ -550,26 +550,19 @@ git branch -a
 
 ---
 
-## Testing (Future - Phase 3)
+## Running Tests
 
-Testing infrastructure is planned for Phase 3.
+# All tests
+pytest tests/ -v
 
-**Planned approach:**
-```python
-# Unit test example (future)
-def test_create_work_item():
-    # Arrange
-    db = mock_db()
-    
-    # Act
-    result = work_module.create_work_item(db, "Test", "service", "new")
-    
-    # Assert
-    assert result.title == "Test"
-    assert result.git_branch is not None
-```
+# With coverage
+pytest tests/ -v --cov=src/core --cov-report=term-missing
 
-**See ROADMAP.md for testing priorities**
+# Only unit tests (fast)
+pytest tests/unit/ -v
+
+# Only integration tests
+pytest tests/integration/ -v
 
 ---
 
