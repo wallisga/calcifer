@@ -20,6 +20,7 @@ If anything is missing, complete the prerequisites first.
 
 ## Part 1: WSL2 Setup (Windows Only)
 
+
 ### Step 1: Install WSL2
 
 ```powershell
