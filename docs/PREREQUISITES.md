@@ -12,13 +12,15 @@ This document lists all requirements for setting up and running Calcifer.
 ### Operating Systems
 
 **Development Machine (where you'll build/test):**
-- **Windows 10/11** (version 1903 or higher) - for WSL2 support
+- **Windows 10/11** (version 1903 or higher) - for WSL support
   - OR **Linux** (Ubuntu 20.04+, Debian 11+, any modern distro)
   - OR **macOS** (10.15+)
 
 **Deployment Target (Proxmox VMs):**
 - **Debian 11 or 12** (recommended)
 - **Ubuntu 22.04 LTS** (alternative)
+
+---
 
 ## Required Software
 
@@ -28,9 +30,8 @@ This document lists all requirements for setting up and running Calcifer.
 
 **Installation:**
 
-**Windows (via WSL2):**
+**Windows (via WSL):**
 ```bash
-# Already included in WSL setup
 sudo apt install git
 ```
 
@@ -57,6 +58,8 @@ git config --global user.email "your.email@example.com"
 git config --global init.defaultBranch main
 ```
 
+---
+
 ### 2. Git Hosting Account (Optional but Recommended)
 
 **Purpose**: Remote backup and collaboration
@@ -77,32 +80,72 @@ git config --global init.defaultBranch main
    ```
 3. Add SSH key to your Git provider account settings
 
-### 3. Python 3.11+
+---
+
+### 3. Python 3.10+
 
 **Purpose**: Calcifer application runtime
 
+**Tested Versions**:
+- ✅ **Python 3.10** (Ubuntu 22.04 default)
+- ✅ **Python 3.11** (Recommended)
+- ✅ **Python 3.12** (Should work, not extensively tested)
+
+**Minimum Version**: Python 3.10
+
+**Why 3.10+?**
+- FastAPI 0.109+ requires Python 3.8+
+- Pydantic 2.x requires Python 3.8+
+- SQLAlchemy 2.x requires Python 3.7+
+- **Tested on Python 3.10** (Ubuntu 22.04 default)
+- Modern Python features and performance improvements
+
+**Note**: While dependencies technically support Python 3.8+, Calcifer is developed and tested on Python 3.10+. Earlier versions may work but are not officially supported.
+
+---
+
 **Installation:**
 
-**Windows (via WSL2):**
+**Ubuntu 22.04 (Recommended):**
 ```bash
-sudo apt install python3.11 python3-pip python3-venv
+# Python 3.10 comes pre-installed
+python3 --version
+# Should show: Python 3.10.x
+
+# Install venv and pip
+sudo apt install python3.10-venv python3-pip -y
 ```
 
-**Linux (Debian/Ubuntu):**
+**Ubuntu 20.04:**
 ```bash
-sudo apt install python3.11 python3-pip python3-venv
+# Python 3.8 comes pre-installed
+# For Python 3.10 or 3.11, add deadsnakes PPA:
+sudo apt install software-properties-common -y
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt update
+sudo apt install python3.10 python3.10-venv python3-pip -y
+# OR
+sudo apt install python3.11 python3.11-venv python3-pip -y
 ```
 
 **macOS:**
 ```bash
+brew install python@3.10
+# OR
 brew install python@3.11
 ```
 
 **Verification:**
 ```bash
 python3 --version
-# Should show: Python 3.11.x
+# Should show: Python 3.10.x or 3.11.x
+
+# Verify venv module exists
+python3 -m venv --help
+# Should show venv help, not an error
 ```
+
+---
 
 ### 4. Visual Studio Code
 
@@ -129,52 +172,54 @@ python3 --version
 - Bottom-left corner should show a status indicator
 - Press `Ctrl+Shift+P` and type "WSL" - you should see WSL commands
 
-### 5. WSL2 (Windows Only)
+---
+
+### 5. WSL (Windows Only)
 
 **Purpose**: Run Linux environment natively on Windows
 
+**Version**: WSL 1 or WSL 2 (both work)
+
 **Requirements:**
 - Windows 10 version 1903+ or Windows 11
-- Virtualization enabled in BIOS/UEFI
+- Virtualization enabled in BIOS (for WSL 2 only)
 - Administrator access
 
 **Installation:**
+
+**For WSL 2** (with virtualization):
 ```powershell
 # In PowerShell as Administrator
 wsl --install -d Ubuntu-22.04
 ```
 
+**For WSL 1** (without virtualization):
+```powershell
+# Enable WSL feature
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+
+# Restart computer
+shutdown /r /t 5
+
+# Install Ubuntu
+wsl --install -d Ubuntu-22.04
+# OR download manually from: https://aka.ms/wslubuntu2204
+```
+
 **Verification:**
 ```powershell
 wsl --list --verbose
-# Should show: Ubuntu-22.04 running WSL version 2
+# Should show Ubuntu-22.04 with VERSION 1 or 2
 ```
 
 **Post-Install:**
-- Set username (lowercase, no spaces) - **IMPORTANT: Do NOT skip this step!**
-- Set password (save in KeePass!)
+- Create username (lowercase, no spaces)
+- Set password (save in password manager!)
 - **Verify you're not root**: Run `whoami` - should show your username, NOT "root"
 
-**Common Issue - Logged in as Root:**
+**Note**: Calcifer works perfectly on both WSL 1 and WSL 2. WSL 2 offers better performance but requires virtualization support.
 
-If `whoami` shows `root` instead of your username:
-
-1. Create a regular user:
-   ```bash
-   # While logged in as root
-   adduser yourusername
-   usermod -aG sudo yourusername
-   ```
-
-2. In PowerShell (as Administrator):
-   ```powershell
-   wsl --shutdown
-   wsl --set-default-user yourusername
-   ```
-
-3. Reopen Ubuntu terminal and verify `whoami` shows your username
-
-See [SETUP_GUIDE.md](SETUP_GUIDE.md) Troubleshooting section for detailed instructions.
+---
 
 ### 6. Docker & Docker Compose (For Deployment)
 
@@ -199,6 +244,8 @@ docker --version
 docker compose version
 ```
 
+---
+
 ## Optional Dependencies
 
 ### 7. Windows Terminal (Windows Only)
@@ -211,55 +258,63 @@ docker compose version
 - Microsoft Store: Search "Windows Terminal"
 - Or download from: https://github.com/microsoft/terminal/releases
 
+---
+
 ### 8. KeePass or Password Manager
 
-**Purpose**: Secure storage for credentials
+**Purpose**: Securely store passwords and SSH keys
 
-**Options:**
-- **KeePass** (existing)
-- **Vaultwarden** (will set up later in Calcifer stack)
-- **Bitwarden** (cloud option)
+**Recommendation**: Use a password manager for WSL passwords, SSH keys, and API tokens
 
-**For now**: Use your existing KeePass database
+---
 
-## Dependency Checklist
+## Python Package Dependencies
 
-Before starting setup, verify you have:
+See `requirements.txt` for complete list. Key dependencies:
 
-- [ ] Windows 10/11 (version 1903+) OR Linux/macOS
-- [ ] Git installed and configured
-- [ ] Git hosting account created (GitHub/GitLab) OR plan to use local-only
-- [ ] SSH key generated and added to Git host (if using remote)
-- [ ] Python 3.11+ installed
-- [ ] Visual Studio Code installed
-- [ ] WSL extension installed in VS Code (Windows only)
-- [ ] WSL2 with Ubuntu 22.04 installed (Windows only)
-- [ ] Administrator/sudo access on your machine
-- [ ] Password manager (KeePass) set up
+| Package | Version | Min Python | Purpose |
+|---------|---------|------------|---------|
+| FastAPI | 0.109.0 | 3.8+ | Web framework |
+| Uvicorn | 0.27.0 | 3.8+ | ASGI server |
+| SQLAlchemy | 2.0.25 | 3.7+ | ORM |
+| Pydantic | 2.5.3 | 3.8+ | Data validation |
+| GitPython | 3.1.41 | 3.7+ | Git integration |
+| Jinja2 | 3.1.3 | 3.7+ | Templates |
 
-## Version Information
+**All dependencies support Python 3.8+**
 
-Document your versions for troubleshooting:
+**Calcifer is tested on Python 3.10+** for optimal compatibility and performance.
 
-```bash
-# Run these commands and save output
-echo "=== System Info ==="
-uname -a
+---
 
-echo "=== Git ==="
-git --version
+## Tested Configurations
 
-echo "=== Python ==="
-python3 --version
+### ✅ **Officially Tested** (Development Environment)
 
-echo "=== VS Code ==="
-code --version
+| OS | Python | Status |
+|----|--------|--------|
+| Ubuntu 22.04 (WSL 1) | 3.10.x | ✅ Primary |
+| Ubuntu 22.04 (WSL 1) | 3.11.x | ✅ Tested |
+| Ubuntu 22.04 (WSL 2) | 3.10.x | ✅ Tested |
 
-echo "=== WSL (Windows only) ==="
-wsl --version
-```
+### 🔄 **Should Work** (Not Extensively Tested)
 
-**Save this output** in Calcifer as a work item note or in a `docs/SYSTEM_INFO.md` file.
+| OS | Python | Status |
+|----|--------|--------|
+| Ubuntu 20.04 | 3.8.x | 🔄 Supported by dependencies |
+| Ubuntu 20.04 | 3.10.x | 🔄 Should work |
+| Debian 11 | 3.9.x | 🔄 Should work |
+| macOS 10.15+ | 3.10+ | 🔄 Should work |
+
+### ❌ **Not Supported**
+
+| OS | Python | Reason |
+|----|--------|--------|
+| Ubuntu 16.04 | 3.5.x | Too old, dependencies incompatible |
+| Ubuntu 18.04 | 3.6.x | Python too old |
+| Any OS | < 3.8 | Dependencies require 3.8+ |
+
+---
 
 ## Network Requirements
 
@@ -275,8 +330,10 @@ wsl --version
 - Various - Your application containers
 
 **Firewall Notes:**
-- WSL2 uses network bridge - may need Windows Firewall rules
+- WSL uses network bridge - may need Windows Firewall rules for WSL 1
 - Proxmox VMs need appropriate firewall rules
+
+---
 
 ## Storage Requirements
 
@@ -290,11 +347,41 @@ wsl --version
 - `10GB` - VM disk minimum
 - `20GB` - VM disk recommended
 
+---
+
+## Platform Support Matrix
+
+### Current Status
+
+| Platform | Python | WSL | Status |
+|----------|--------|-----|--------|
+| Windows 10/11 | 3.10+ | WSL 1/2 | ✅ Primary Development |
+| Linux | 3.10+ | N/A | ✅ Deployment Target |
+| macOS | 3.10+ | N/A | 🔄 Should Work |
+
+### Future Testing Roadmap
+
+As the project matures, additional platforms and Python versions will be tested:
+
+**Phase 4**: 
+- Ubuntu 22.04 + Python 3.10/3.11 (current)
+- Debian 12 deployment testing
+
+**Phase 5+**:
+- Python 3.12 compatibility testing
+- macOS development environment testing
+- Additional Linux distributions
+- Older Python versions (3.8, 3.9) verification
+
+---
+
 ## Next Steps
 
 Once all prerequisites are met, proceed to:
 - **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete setup instructions
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development workflow and patterns
+
+---
 
 ## Additional Reading
 
@@ -303,20 +390,25 @@ After setup, review these to understand the architecture:
 - **[ARCHITECTURE_PATTERNS_GUIDE.md](ARCHITECTURE_PATTERNS_GUIDE.md)** - Detailed development patterns
 - **[DEVELOPER_QUICK_REFERENCE.md](DEVELOPER_QUICK_REFERENCE.md)** - Daily development cheat sheet
 
+---
+
 ## Troubleshooting Prerequisites
 
-### WSL2 Not Available
+### WSL Issues
 - Check Windows version: `winver` (must be 1903+)
-- Check virtualization: `systeminfo` and look for "Hyper-V"
-- Enable in BIOS if needed
+- Check virtualization (WSL 2 only): `systeminfo` and look for "Hyper-V"
+- Enable in BIOS if needed (for WSL 2)
 
-### Python 3.11 Not Found
+### Python Version Issues
 ```bash
-# Ubuntu/Debian - add deadsnakes PPA
-sudo apt install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
+# Ubuntu 22.04 - Python 3.10 is default
+python3 --version
+
+# For older Ubuntu versions, use deadsnakes PPA
+sudo apt install software-properties-common -y
+sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update
-sudo apt install python3.11
+sudo apt install python3.10 python3.10-venv -y
 ```
 
 ### Git SSH Key Issues
@@ -333,5 +425,6 @@ ssh -T git@github.com
 
 ---
 
-**Last Updated:** November 23, 2025  
-**For:** Calcifer v2.0 (Phase 2 Complete)
+**Last Updated:** November 2025  
+**Tested On:** Ubuntu 22.04 LTS (WSL 1) with Python 3.10  
+**Version:** Calcifer v2.0 (Phase 3 Complete)

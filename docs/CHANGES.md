@@ -3,6 +3,9 @@
 All changes are logged here. These are auto-generated using the Merge & Complete feature.
 
 
+
+## 2025-11-29 - Gavin Wallis - New Document
+- Update prerequisites for wsl to include Ubuntu and Python version dependencies
 ## 2025-11-25 - Gavin Wallis - Document Change
 - Remove Outdated Documentation
 ## 2025-11-25 - Gavin Wallis - Document Fix
