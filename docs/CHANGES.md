@@ -4,6 +4,11 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-06 - Gavin Wallis - Document Change
+- Add TOOLS.md with git-sync documentation
+- Update DEVELOPMENT.md with multi-machine workflow
+- Update ROADMAP.md with IDE integration plan
 ## 2025-11-29 - Gavin Wallis - New Document
 - Update prerequisites for wsl to include Ubuntu and Python version dependencies
 ## 2025-11-25 - Gavin Wallis - Document Change

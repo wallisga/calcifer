@@ -1,20 +1,31 @@
-# Development Setup
+# Development Guide
 
-Guide for setting up Calcifer for local development.
+This guide covers the development workflow for contributing to Calcifer.
 
-## Prerequisites
+---
 
-See [PREREQUISITES.md](PREREQUISITES.md) for system requirements.
+## Table of Contents
 
-**Quick checklist:**
-- Python 3.11+
-- Git
-- VS Code (recommended)
+1. [Quick Start](#quick-start)
+2. [Development Environment](#development-environment)
+3. [File Structure](#file-structure)
+4. [Development Workflow](#development-workflow)
+5. [Multi-Machine Workflow](#multi-machine-workflow)
+6. [Testing](#testing)
+7. [Code Style](#code-style)
+8. [Architecture Patterns](#architecture-patterns)
+9. [Troubleshooting](#troubleshooting)
 
-## Setup from Git Clone
+---
+
+## Quick Start
+
+### Prerequisites
+- See [PREREQUISITES.md](PREREQUISITES.md)
 
 ### 1. Clone Repository
 ```bash
+cd ~
 git clone git@github.com:yourusername/calcifer.git
 cd calcifer
 ```
@@ -23,24 +34,14 @@ cd calcifer
 ```bash
 cd calcifer-app
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install --upgrade pip
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Initialize Local Documentation
-
-The repo includes template documentation, but local changes are git-ignored:
+### 3. Configure Git
 ```bash
-cd ..
-# docs/CHANGES.md will be created automatically by Calcifer
-# You can also create it manually:
-cat > docs/CHANGES.md << 'EOF'
-# Change Log
-
-## $(date +%Y-%m-%d) - $(git config user.name)
-- Initial local setup
-EOF
+git config user.name "Your Name"
+git config user.email "your@email.com"
 ```
 
 ### 4. Run Calcifer
@@ -63,7 +64,7 @@ git commit -m "Initial setup"
 
 ---
 
-## Development Workflow
+## Development Environment
 
 ### Using VS Code
 
@@ -85,7 +86,7 @@ Press `Ctrl+Shift+P` → "Run Task":
 
 ---
 
-## File Structure (Post Phase 2 Refactoring)
+## File Structure
 
 ```
 calcifer/
@@ -114,6 +115,9 @@ calcifer/
 │   ├── templates/        # Jinja2 HTML templates
 │   ├── static/           # CSS/JS (currently minimal)
 │   ├── data/             # SQLite database (git-ignored)
+│   ├── tests/            # Test suite
+│   │   ├── unit/        # Unit tests
+│   │   └── integration/ # Integration tests
 │   └── requirements.txt  # Python dependencies
 │
 ├── docs/                 # Documentation
@@ -123,588 +127,473 @@ calcifer/
 │   ├── ARCHITECTURE.md
 │   ├── ARCHITECTURE_PATTERNS_GUIDE.md  # ← Key reference!
 │   ├── DEVELOPER_QUICK_REFERENCE.md    # ← Keep this handy!
-│   ├── CHANGES.md        # Tracked change log
-│   └── endpoint-*.md     # Generated endpoint docs
+│   ├── DEVELOPMENT.md    # ← You are here
+│   ├── TESTING.md
+│   ├── TOOLS.md          # Developer utilities
+│   └── CHANGES.md        # Change log (tracked in Git)
 │
-├── infrastructure/       # Deployment configs (future)
-└── README.md
+├── tools/                # Developer scripts
+│   └── git-sync.sh      # Multi-machine sync tool
+│
+└── README.md            # Project overview
 ```
 
 ---
 
-## Architecture Overview (Phase 2)
+## Development Workflow
 
-Calcifer uses a **clean three-layer architecture**:
+### Making Changes
 
-### Layer 1: HTTP/UI (main.py)
-- **Purpose:** Routing only
-- **Rules:** 
-  - ✅ Parse requests
-  - ✅ Call module methods
-  - ✅ Return responses
-  - ❌ No business logic
-  - ❌ No database queries (except simple display)
+**ALWAYS use Calcifer's UI to manage work:**
 
-### Layer 2: Modules (core/* and integrations/*)
-- **Purpose:** All business logic
-- **Rules:**
-  - ✅ Validation
-  - ✅ Database operations
-  - ✅ Orchestration
-  - ❌ No HTTP concerns
-  - ❌ No template rendering
+1. **Create Work Item**
+   - Go to http://localhost:8000
+   - Click "New Work"
+   - Fill out form (title, category, action type, description)
+   - Calcifer auto-creates Git branch
 
-### Layer 3: Data (models.py, database.py)
-- **Purpose:** Database schema
-- **Rules:**
-  - ✅ ORM models
-  - ✅ Basic queries
-  - ❌ No business logic
+2. **Work on Changes**
+   - Edit code in your editor
+   - Calcifer is on the feature branch
+   - Make your changes
+
+3. **Commit via Calcifer UI**
+   - Click "Commit Changes" in work item
+   - See current Git status
+   - Enter commit message
+   - **IMPORTANT:** Add CHANGES.md entry
+   - Commit
+
+4. **Complete Checklist**
+   - Toggle checklist items as you complete them
+   - Add notes documenting your work
+
+5. **Merge & Complete**
+   - Click "Merge & Complete" button
+   - Calcifer validates:
+     - All checklist items complete
+     - Notes added
+     - CHANGES.md has entry
+     - Commits made
+   - Merges to main
+   - Marks work item complete
+
+### Architecture Rules
+
+**Phase 2 Pattern:**
+
+```
+HTTP Layer (main.py)
+  ↓ calls
+Core Modules (business logic)
+  ↓ calls
+Integrations (optional features)
+  ↓ uses
+Database (models + queries)
+```
+
+**Key Rules:**
+- Routes in `main.py` should be < 20 lines
+- Business logic goes in core modules
+- Direct database queries only in modules, not routes
+- Integrations are optional features
+
+See [ARCHITECTURE_PATTERNS_GUIDE.md](ARCHITECTURE_PATTERNS_GUIDE.md) for details.
 
 ---
 
-## Making Changes
+## Multi-Machine Workflow
 
-### Step 1: Create Work Item
-Use Calcifer UI to create a work item → auto-creates Git branch
+### Scenario: Working on Multiple Machines
 
-### Step 2: Decide Where Code Goes
+**Example:** Development laptop at work + desktop at home
 
-**Is it required for Calcifer to work?**
-- YES → `src/core/` (core module)
-- NO → `src/integrations/` (integration module)
+### Setup (One-Time Per Machine)
 
-**Is it HTTP routing?**
-- YES → `src/main.py` (keep it thin!)
-- NO → Add to appropriate module
+**On each machine:**
 
-**Is it a database model?**
-- YES → `src/models.py`
-- NO → Somewhere else
+1. **Clone repository**
+   ```bash
+   cd ~
+   git clone git@github.com:yourusername/calcifer.git
+   cd calcifer
+   ```
 
-### Step 3: Write Code
+2. **Set up environment**
+   ```bash
+   cd calcifer-app
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-**For routes (main.py):**
-```python
-@app.post("/resource/action")
-async def perform_action(
-    param: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    """Short docstring."""
-    # Call module - it does everything
-    success, message = module.perform_action(db, param)
-    
-    # Redirect based on result
-    if success:
-        return RedirectResponse(url=f"/success?message={message}", status_code=303)
-    else:
-        return RedirectResponse(url=f"/error?message={message}", status_code=303)
-```
+3. **Install git-sync tool** (recommended)
+   ```bash
+   chmod +x tools/git-sync.sh
+   ```
 
-**For modules:**
-```python
-# In src/core/your_module.py
+### Daily Workflow
 
-@staticmethod
-def perform_action(db: Session, param: str) -> Tuple[bool, str]:
-    """
-    Brief description.
-    
-    Args:
-        db: Database session
-        param: Description
-        
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
-    # Validation
-    if not param:
-        return False, "Param required"
-    
-    # Business logic
-    processed = param.lower().strip()
-    
-    # Database operations
-    obj = models.YourModel(value=processed)
-    db.add(obj)
-    db.commit()
-    
-    return True, "Success!"
-```
+**Machine A (e.g., work laptop):**
 
-### Step 4: Test Locally
 ```bash
+# Morning - Start of day
+cd ~/calcifer
+./tools/git-sync.sh              # Pull latest changes safely
+
+# Start Calcifer
 cd calcifer-app
 source venv/bin/activate
 uvicorn src.main:app --reload
+
+# Create work item in UI, make changes, commit via UI
+
+# After merging work item
+git checkout main
+git push origin main             # Push to GitHub
+
+# End of day - you're done!
 ```
 
-### Step 5: Update Documentation
-- Add notes in the work item
-- Calcifer will prompt for CHANGES.md entry when committing
+**Machine B (e.g., home desktop):**
 
-### Step 6: Commit
-Use Calcifer's "Commit Changes" button to commit with CHANGES.md update
+```bash
+# Evening - Start of session
+cd ~/calcifer
+./tools/git-sync.sh              # Gets work from Machine A
+
+# Start Calcifer
+cd calcifer-app
+source venv/bin/activate
+uvicorn src.main:app --reload
+
+# Continue work or start new work items
+
+# After merging work item
+git checkout main
+git push origin main             # Push to GitHub
+```
+
+### Git Sync Tool
+
+**What it does:**
+- Safely fetches latest changes
+- Shows what would be pulled
+- Only pulls if safe (fast-forward)
+- Warns about uncommitted changes
+- Aborts if conflicts detected
+
+**Usage:**
+```bash
+cd ~/calcifer
+./tools/git-sync.sh         # Sync main branch
+./tools/git-sync.sh develop # Sync specific branch
+```
+
+See [TOOLS.md](TOOLS.md) for detailed git-sync documentation.
+
+### Handling Uncommitted Work
+
+**Scenario:** You have uncommitted changes on Machine A, need to switch to Machine B
+
+**Option 1: Commit your work via Calcifer**
+```bash
+# Best practice - use Calcifer UI to commit
+# Then push and sync on other machine
+```
+
+**Option 2: Git stash (manual)**
+```bash
+# On Machine A
+git stash
+git push origin main
+
+# On Machine B
+git pull origin main
+# Work on Machine B
+
+# Back on Machine A later
+git pull origin main
+git stash pop
+```
+
+**Option 3: Temporary branch (manual)**
+```bash
+# On Machine A
+git checkout -b temp-work-in-progress
+git add .
+git commit -m "WIP: Save work"
+git push origin temp-work-in-progress
+
+# On Machine B
+git fetch origin
+git checkout temp-work-in-progress
+# Continue work
+```
+
+### Best Practices
+
+**DO:**
+- ✅ Use git-sync.sh before starting work each day
+- ✅ Push main after merging work items
+- ✅ Create work items for all changes
+- ✅ Commit frequently via Calcifer UI
+
+**DON'T:**
+- ❌ Make changes directly on main without work item
+- ❌ Force push (`git push -f`)
+- ❌ Work on same feature branch on both machines simultaneously
+- ❌ Forget to push after merging work items
+
+### Troubleshooting Multi-Machine
+
+**"Branches have diverged"**
+```bash
+# You and remote both have different commits
+# Options:
+
+# 1. Merge (keeps both sets of changes)
+git pull origin main
+
+# 2. Rebase (puts your changes on top)
+git rebase origin/main
+
+# 3. Reset (discards local commits - careful!)
+git reset --hard origin/main
+```
+
+**"Uncommitted changes would be overwritten"**
+```bash
+# You have local changes not committed
+# Use Calcifer UI to commit them first, or:
+git stash              # Save changes temporarily
+./tools/git-sync.sh    # Sync
+git stash pop          # Restore changes
+```
+
+**"Remote contains work you don't have"**
+```bash
+# Normal! Just sync:
+./tools/git-sync.sh    # Pulls changes safely
+```
 
 ---
 
-## Key Development References
+## Testing
 
-### Must-Read Before Coding
-1. **[ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md)** - Detailed patterns
-2. **[DEVELOPER_QUICK_REFERENCE.md](../docs/DEVELOPER_QUICK_REFERENCE.md)** - Daily cheat sheet
+### Running Tests
 
-### Golden Rules
-1. **Routes are thin** - 5-15 lines, no business logic
-2. **Modules are thick** - ALL business logic here
-3. **Core can't use integrations** - Must work standalone
-4. **Return `Tuple[bool, str]`** - For operations that can fail
-
----
-
-## Database
-
-Calcifer uses SQLite stored in `calcifer-app/data/calcifer.db`.
-
-### Inspect Database
 ```bash
 cd calcifer-app
-sqlite3 data/calcifer.db
+source venv/bin/activate
 
-.tables
-SELECT * FROM work_items;
-.quit
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ -v --cov=src --cov-report=term-missing
+
+# Run specific test file
+pytest tests/unit/test_work_module.py -v
+
+# Run specific test
+pytest tests/unit/test_work_module.py::test_create_work_item -v
 ```
 
-### Reset Database (Fresh Start)
-```bash
-rm -f calcifer-app/data/calcifer.db
-# Restart Calcifer - database will be recreated
+### Test Structure
+
+```
+tests/
+├── unit/                    # Unit tests (modules in isolation)
+│   ├── test_work_module.py
+│   └── test_service_catalog_module.py
+│
+├── integration/             # Integration tests (full workflows)
+│   └── test_work_flows.py
+│
+├── conftest.py             # Shared fixtures
+└── __init__.py
 ```
 
-### Database Migrations (Future)
-Currently, schema changes require manual migration or DB reset.  
-**Planned:** Alembic migrations in Phase 3
+### Writing Tests
+
+See [TESTING.md](TESTING.md) for comprehensive testing guide.
+
+**Quick example:**
+```python
+def test_create_work_item(db_session, temp_git_repo):
+    """Test creating a work item."""
+    work = work_module.create_work_item(
+        db_session,
+        title="Test Work",
+        category="service",
+        action_type="new"
+    )
+    
+    assert work.title == "Test Work"
+    assert work.status == "planning"
+    assert work.branch_name is not None
+```
 
 ---
 
-## Logging
+## Code Style
 
-Calcifer uses Python's built-in logging module for structured, observable output.
+### Python Style Guide
 
-### Architecture
+**Follow:**
+- PEP 8 (Python Enhancement Proposal 8)
+- Type hints where appropriate
+- Docstrings for all public methods
 
-**Centralized Configuration:**
-- `src/core/logging_module.py` - Single source of logging setup
-- Stdout output (container-friendly)
-- Structured format ready for aggregation
-- JSON format available for production
-
-### Using Logging in Your Code
-
-#### Core Modules
-
+**Example:**
 ```python
-# At the top of any core module
-from .logging_module import get_logger
-
-logger = get_logger('calcifer.core.module_name')
-
-# In your code
-logger.info("Work item created successfully")
-logger.debug(f"Generated branch name: {branch_name}")
-logger.warning("Unexpected condition, but continuing")
-logger.error("Failed to create branch", exc_info=True)
-```
-
-#### Integration Modules
-
-```python
-# At the top of any integration module
-from ...core.logging_module import get_logger
-
-logger = get_logger('calcifer.integrations.integration_name')
-
-# Same usage as core modules
-logger.info("Endpoint check completed")
-```
-
-### Log Levels
-
-Use appropriate levels for different situations:
-
-| Level | When to Use | Example |
-|-------|-------------|---------|
-| `DEBUG` | Detailed debugging info | `logger.debug(f"Checklist items: {len(items)}")` |
-| `INFO` | General operational messages | `logger.info("Work item created")` |
-| `WARNING` | Unexpected but handled | `logger.warning("Branch already exists, using existing")` |
-| `ERROR` | Serious problems | `logger.error("Database connection failed", exc_info=True)` |
-| `CRITICAL` | Application cannot continue | `logger.critical("Configuration file missing")` |
-
-**Best Practices:**
-- Use `exc_info=True` with ERROR logs to include stack traces
-- Don't log sensitive data (passwords, tokens, API keys)
-- Use f-strings for readable log messages
-- Keep messages concise but informative
-
-### Log Output Format
-
-**Development (default):**
-```
-2025-11-24 14:30:01 - calcifer.core.work - INFO - Work item created: Test Feature
-2025-11-24 14:30:02 - calcifer.core.git - INFO - Branch created: service/new/test-feature-20251124
-```
-
-**Production (JSON):**
-```json
-{"time":"2025-11-24 14:30:01","name":"calcifer.core.work","level":"INFO","message":"Work item created: Test Feature"}
-```
-
-### Configuring Log Level
-
-Set log level via environment variable:
-
-```bash
-# In development
-export CALCIFER_LOG_LEVEL=DEBUG
-uvicorn src.main:app --reload
-
-# In production
-export CALCIFER_LOG_LEVEL=INFO
-export LOG_FORMAT=json
-```
-
-### Viewing Logs
-
-**Local Development:**
-```bash
-# Logs appear in terminal where uvicorn runs
-uvicorn src.main:app --reload
-
-# Filter by module
-uvicorn src.main:app --reload 2>&1 | grep "calcifer.core.work"
-
-# Save to file
-uvicorn src.main:app --reload 2>&1 | tee calcifer.log
-```
-
-**Docker Containers:**
-```bash
-# View live logs
-docker logs -f calcifer-app
-
-# View logs for specific module
-docker logs calcifer-app 2>&1 | grep "calcifer.core"
-```
-
-### Testing Logging
-
-When writing tests, you can verify logging:
-
-```python
-import logging
-
-def test_something_logs_correctly(caplog):
-    """Test that operation logs the right message."""
-    with caplog.at_level(logging.INFO):
-        module.do_something()
+def create_work_item(
+    db: Session,
+    title: str,
+    category: str,
+    action_type: str
+) -> models.WorkItem:
+    """
+    Create a new work item with Git branch.
     
-    assert "Expected message" in caplog.text
+    Args:
+        db: Database session
+        title: Work item title
+        category: Category (service, platform_feature, infrastructure)
+        action_type: Action (new, change, fix, deprecate)
+        
+    Returns:
+        Created WorkItem instance
+    """
+    # Implementation here
 ```
 
-### Future: Log Aggregation
+### Module Pattern
 
-The structured logging format is designed for easy integration with:
-- **Grafana Loki** - Log aggregation for Grafana
-- **ELK Stack** - Elasticsearch, Logstash, Kibana
-- **CloudWatch** - AWS log management
-- **Papertrail** - Hosted log management
+**All business logic in modules:**
+```python
+# ✅ GOOD - Logic in module
+class WorkModule:
+    @staticmethod
+    def create_work_item(db: Session, ...) -> models.WorkItem:
+        # Business logic here
+        
+# ✅ GOOD - Thin route
+@app.post("/work/new")
+async def create_work(title: str = Form(...), db: Session = Depends(get_db)):
+    work_item = work_module.create_work_item(db, title, ...)
+    return RedirectResponse(...)
 
-See ROADMAP.md for log aggregation integration plans.
+# ❌ BAD - Logic in route
+@app.post("/work/new")
+async def create_work(...):
+    # Generate branch name here
+    # Create checklist here
+    # Save to database here
+    # This should be in WorkModule!
+```
 
 ---
 
-## Common Patterns
+## Architecture Patterns
 
-### Pattern 1: Operation Start/End
+### Key Documents
 
-```python
-def create_something(db: Session, name: str):
-    logger.info(f"Creating something: {name}")
-    
-    try:
-        # Do work
-        result = do_work()
-        logger.info(f"Successfully created: {name}")
-        return result
-    except Exception as e:
-        logger.error(f"Failed to create {name}: {e}", exc_info=True)
-        raise
+**Must read before contributing:**
+1. [ARCHITECTURE.md](ARCHITECTURE.md) - High-level overview
+2. [ARCHITECTURE_PATTERNS_GUIDE.md](ARCHITECTURE_PATTERNS_GUIDE.md) - Detailed patterns
+3. [DEVELOPER_QUICK_REFERENCE.md](DEVELOPER_QUICK_REFERENCE.md) - Quick reference
+
+### Quick Architecture Overview
+
+**3-Layer Pattern:**
+
+```
+┌─────────────────────────────────┐
+│  HTTP Layer (main.py)           │  ← Thin routes, < 20 lines
+│  - Receive requests             │
+│  - Call modules                 │
+│  - Return responses             │
+└────────────┬────────────────────┘
+             │
+┌────────────▼────────────────────┐
+│  Service Layer (core/*)         │  ← Business logic
+│  - Validation                   │
+│  - Orchestration                │
+│  - Business rules               │
+└────────────┬────────────────────┘
+             │
+┌────────────▼────────────────────┐
+│  Data Layer (models.py)         │  ← Database operations
+│  - Database schema              │
+│  - ORM models                   │
+│  - Queries                      │
+└─────────────────────────────────┘
 ```
 
-### Pattern 2: Performance Timing
-
-```python
-import time
-
-def expensive_operation():
-    start = time.time()
-    logger.debug("Starting expensive operation")
-    
-    # Do work
-    result = do_work()
-    
-    duration = time.time() - start
-    logger.info(f"Operation completed in {duration:.2f}s")
-    return result
-```
-
-### Pattern 3: Conditional Logging
-
-```python
-def process_items(items):
-    logger.info(f"Processing {len(items)} items")
-    
-    for item in items:
-        logger.debug(f"Processing item: {item.id}")
-        # Process item
-    
-    logger.info("All items processed successfully")
-```
+**Core vs Integrations:**
+- **Core** = Required for Calcifer to work (work items, git, docs)
+- **Integrations** = Optional features (monitoring, external APIs)
 
 ---
 
 ## Troubleshooting
 
-### No Logs Appearing
+### Common Issues
 
-**Problem:** No log output when running application
-
-**Solutions:**
-1. Check `setup_logging()` is called in `main.py`
-2. Verify imports are correct
-3. Check log level isn't set to `CRITICAL`
-4. Ensure stdout isn't redirected
-
-### Duplicate Log Messages
-
-**Problem:** Same message appears multiple times
-
-**Solution:** Call `setup_logging()` only once (in main.py startup)
-
-### Logs Not Structured
-
-**Problem:** Print statements still appearing
-
-**Solution:** Search codebase for remaining `print()` statements:
+**"Module not found" errors**
 ```bash
-grep -r "print(" calcifer-app/src/ --exclude-dir=__pycache__
-```
+# Ensure __init__.py files exist
+ls calcifer-app/src/core/__init__.py
+ls calcifer-app/src/integrations/__init__.py
 
----
-
-## Common Issues
-
-### Port 8000 in use
-```bash
-lsof -i :8000
-kill -9 <PID>
-```
-
-### Import errors
-```bash
+# Reinstall dependencies
 cd calcifer-app
-source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Module not found
+**Port 8000 already in use**
 ```bash
-# Check your imports
-# Core modules: from .core import module_name
-# Integrations: from .integrations import module_name
+# Find and kill process
+lsof -i :8000
+kill -9 <PID>
 
-# Verify __init__.py exists
-ls src/core/__init__.py
-ls src/integrations/__init__.py
-```
-
-### Database errors
-```bash
-rm -f calcifer-app/data/calcifer.db
-# Restart - fresh database
-```
-
-### Git branch issues
-```bash
-# Check current branch
-git branch
-
-# Switch back to main
-git checkout main
-
-# See all branches
-git branch -a
-```
-
----
-
-## Running Tests
-
-# All tests
-pytest tests/ -v
-
-# With coverage
-pytest tests/ -v --cov=src/core --cov-report=term-missing
-
-# Only unit tests (fast)
-pytest tests/unit/ -v
-
-# Only integration tests
-pytest tests/integration/ -v
-
----
-
-## Code Quality Checklist
-
-Before committing, verify:
-
-- [ ] Routes under 20 lines?
-- [ ] No business logic in routes?
-- [ ] Module methods have docstrings?
-- [ ] Proper return types (Tuple[bool, str] for actions)?
-- [ ] Core modules don't import integrations?
-- [ ] Using singleton instances (e.g., `work_module` not `WorkModule`)?
-- [ ] Error messages user-friendly?
-- [ ] CHANGES.md updated?
-- [ ] Tested manually?
-
----
-
-## Development Workflow Summary
-
-```
-1. Create work item in UI
-   ↓
-2. Branch created automatically
-   ↓
-3. Write code in appropriate module
-   ↓
-4. Test locally (uvicorn --reload)
-   ↓
-5. Add notes to work item
-   ↓
-6. Use "Commit Changes" button
-   ↓
-7. Complete checklist
-   ↓
-8. "Merge & Complete" when done
-```
-
----
-
-## Module Development Patterns
-
-### Adding a New Core Module
-
-1. Create file in `src/core/`
-2. Define class with @staticmethod methods
-3. Create singleton instance at bottom
-4. Export in `src/core/__init__.py`
-5. Use in routes
-
-**Example:**
-```python
-# src/core/new_module.py
-
-class NewModule:
-    """Module description."""
-    
-    @staticmethod
-    def do_something(db: Session, param: str) -> Tuple[bool, str]:
-        """Method description."""
-        # Implementation
-        return True, "Success"
-
-# Singleton
-new_module = NewModule()
-```
-
-```python
-# src/core/__init__.py
-from .new_module import new_module
-
-__all__ = [..., 'new_module']
-```
-
-### Adding a New Integration
-
-1. Create directory in `src/integrations/`
-2. Create `integration.py` (low-level operations)
-3. Create `module_name.py` (business logic)
-4. Create `__init__.py` (exports)
-5. Use in routes
-
-**See [ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md) Section: "Pattern 3: Integration Modules"**
-
----
-
-## Performance Tips
-
-### Development Mode
-```bash
-# Enable auto-reload (default in command above)
-uvicorn src.main:app --reload
-
-# Use different port if needed
+# Or use different port
 uvicorn src.main:app --reload --port 8001
 ```
 
-### Database Performance
-- SQLite is fast for < 100k records
-- Add indexes for frequently queried fields (future)
-- Consider PostgreSQL for production (future)
-
-### Git Performance
-- Keep repo size reasonable (< 1GB)
-- Don't commit large files
-- Use `.gitignore` properly
-
----
-
-## Debugging
-
-### Enable Debug Logging
-```python
-# In src/main.py (temporarily)
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-### Check Route Registration
+**Database errors**
 ```bash
-# Start server and check this URL
-curl http://localhost:8000/docs
-# Shows all registered routes
+# Delete and recreate database
+rm -f calcifer-app/data/calcifer.db
+# Restart app - database recreates automatically
 ```
 
-### Inspect Module State
-```python
-# In a route (temporarily)
-print(f"Module state: {module.get_all_data()}")
+**Git operations failing**
+```bash
+# Configure Git
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
 ```
 
 ---
 
-## Next Steps
+## Additional Resources
 
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
-- Check [ROADMAP.md](ROADMAP.md) for planned features
-- Review [ARCHITECTURE_PATTERNS_GUIDE.md](../docs/ARCHITECTURE_PATTERNS_GUIDE.md) for detailed patterns
-- Keep [DEVELOPER_QUICK_REFERENCE.md](../docs/DEVELOPER_QUICK_REFERENCE.md) handy while coding
-- Start building! 🔥
+### Internal Documentation
+- [TOOLS.md](TOOLS.md) - Developer utilities and scripts
+- [TESTING.md](TESTING.md) - Testing patterns and best practices
+- [ROADMAP.md](ROADMAP.md) - Future features and plans
+
+### External Resources
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [SQLAlchemy ORM](https://docs.sqlalchemy.org/en/20/orm/)
+- [GitPython](https://gitpython.readthedocs.io/)
+- [Pytest](https://docs.pytest.org/)
 
 ---
 
-**Remember:** If your route is more than 20 lines or has business logic, something is wrong! Move that logic to a module. 😄
+**Last Updated:** December 6, 2025  
+**Version:** Calcifer v2.0 (Phase 3 Complete)  
+**Next Milestone:** Phase 4 - Production Deployment
