@@ -77,6 +77,8 @@ class Service(Base):
     url = Column(String(200), nullable=True)
     description = Column(Text)
     status = Column(String(20), default="active")  # active, inactive, maintenance
+    created_date = Column(DateTime, default=datetime.utcnow)
+    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)    
     
     # Technical details
     ports = Column(String(200), nullable=True)
@@ -90,12 +92,63 @@ class Service(Base):
     # Documentation
     docs_url = Column(String(200), nullable=True)
     config_path = Column(String(200), nullable=True)  # Path in Git repo
+    readme_path = Column(String(500))    # Path to service README
+    architecture_doc = Column(Text)      # Service architecture notes    
+
+    # Git repository settings
+    git_repo_path = Column(String(500))  # e.g., "~/calcifer/wireguard-vpn-server"
+    git_repo_url = Column(String(500))   # e.g., "git@github.com:user/wireguard-vpn-server.git"
+    git_repo_private = Column(Boolean, default=True)
+    git_provider = Column(String(50))    # "github", "gitlab", "gitea", or null
     
-    created_date = Column(DateTime, default=datetime.utcnow)
-    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Deployment settings
+    deployment_type = Column(String(50))  # "bare_metal", "docker", "kubernetes"
+    docker_compose_path = Column(String(500))  # Path to docker-compose.yml if applicable
+    
+    # Relationships
+    hosts = relationship("ServiceHost", back_populates="service", cascade="all, delete-orphan")
+    config_files = relationship("ServiceConfigFile", back_populates="service", cascade="all, delete-orphan")
+    
     
     def __repr__(self):
         return f"<Service(name='{self.name}', type='{self.service_type}', host='{self.host}')>"
+
+class ServiceHost(Base):
+    """Track multiple hosts/VMs for a single service."""
+    __tablename__ = "service_hosts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    service_id = Column(Integer, ForeignKey('services.id'), nullable=False)
+    hostname = Column(String(100), nullable=False)
+    ip_address = Column(String(50))
+    role = Column(String(50))  # e.g., "vpn-client", "api-server", "database"
+    description = Column(Text)
+    created_date = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    service = relationship("Service", back_populates="hosts")
+    
+    def __repr__(self):
+        return f"<ServiceHost(hostname='{self.hostname}', role='{self.role}', service_id={self.service_id})>"
+
+class ServiceConfigFile(Base):
+    """Track configuration files managed by a service."""
+    __tablename__ = "service_config_files"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    service_id = Column(Integer, ForeignKey('services.id'), nullable=False)
+    filepath = Column(String(500), nullable=False)  # e.g., "/etc/nginx/sites-available/app"
+    description = Column(Text)
+    is_template = Column(Boolean, default=False)  # True if this is a template file
+    git_tracked = Column(Boolean, default=True)
+    secrets_file = Column(Boolean, default=False)  # True if this is .env or contains secrets
+    created_date = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    service = relationship("Service", back_populates="config_files")
+    
+    def __repr__(self):
+        return f"<ServiceConfigFile(filepath='{self.filepath}', service_id={self.service_id})>"
 
 class Commit(Base):
     """Tracks Git commits associated with work items."""

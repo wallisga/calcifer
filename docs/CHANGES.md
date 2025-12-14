@@ -5,6 +5,10 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-14 - Gavin Wallis - New Service
+- Update models to include service host and config options
+Update service catalog module with new methods to update service hosts and configurations
 ## 2025-12-06 - Gavin Wallis - Document Change
 - Add TOOLS.md with git-sync documentation
 - Update DEVELOPMENT.md with multi-machine workflow
