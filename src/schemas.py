@@ -33,6 +33,7 @@ class WorkItemResponse(BaseModel):
         from_attributes = True
 
 # Service Schemas
+# Service Schemas
 class ServiceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     service_type: str = Field(..., pattern="^(container|vm|bare_metal)$")
@@ -45,6 +46,14 @@ class ServiceCreate(BaseModel):
     depends_on: Optional[List[int]] = []
     required_by: Optional[List[int]] = []
     config_path: Optional[str] = None
+    git_repo_path: Optional[str] = None
+    git_repo_url: Optional[str] = None
+    git_repo_private: bool = True
+    git_provider: Optional[str] = None
+    deployment_type: Optional[str] = None
+    docker_compose_path: Optional[str] = None
+    readme_path: Optional[str] = None
+    architecture_doc: Optional[str] = None
 
 class ServiceUpdate(BaseModel):
     name: Optional[str] = None
@@ -59,6 +68,14 @@ class ServiceUpdate(BaseModel):
     depends_on: Optional[List[int]] = None
     required_by: Optional[List[int]] = None
     config_path: Optional[str] = None
+    git_repo_path: Optional[str] = None
+    git_repo_url: Optional[str] = None
+    git_repo_private: Optional[bool] = None
+    git_provider: Optional[str] = None
+    deployment_type: Optional[str] = None
+    docker_compose_path: Optional[str] = None
+    readme_path: Optional[str] = None
+    architecture_doc: Optional[str] = None
 
 class ServiceResponse(BaseModel):
     id: int
@@ -74,6 +91,14 @@ class ServiceResponse(BaseModel):
     depends_on: List[int]
     required_by: List[int]
     config_path: Optional[str]
+    git_repo_path: Optional[str]
+    git_repo_url: Optional[str]
+    git_repo_private: bool
+    git_provider: Optional[str]
+    deployment_type: Optional[str]
+    docker_compose_path: Optional[str]
+    readme_path: Optional[str]
+    architecture_doc: Optional[str]
     created_date: datetime
     updated_date: datetime
     

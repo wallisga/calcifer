@@ -6,6 +6,10 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-14 - Gavin Wallis - New Service
+- After manual testing we updated the schema validator
+Updated unit tests for service catalog schema changes
 ## 2025-12-14 - Gavin Wallis - New Service
 - Update models to include service host and config options
 Update service catalog module with new methods to update service hosts and configurations

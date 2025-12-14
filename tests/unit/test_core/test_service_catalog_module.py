@@ -450,3 +450,316 @@ class TestServiceCatalogEdgeCases:
         # Assert
         assert len(results_upper) == 1
         assert len(results_lower) == 0  # Case-sensitive, no match
+
+class TestServiceHostManagement:
+    """Test service host management operations."""
+    
+    @pytest.mark.unit
+    def test_add_host_to_service(self, db_session, sample_service):
+        """Test adding a host to a service."""
+        # Arrange
+        hostname = "test-host-1"
+        ip_address = "192.168.1.100"
+        role = "primary"
+        
+        # Act
+        result = service_catalog_module.add_host_to_service(
+            db_session,
+            service_id=sample_service.id,
+            hostname=hostname,
+            ip_address=ip_address,
+            role=role,
+            description="Primary host"
+        )
+        
+        # Assert
+        assert result is not None
+        assert result.hostname == hostname
+        assert result.ip_address == ip_address
+        assert result.role == role
+        assert result.service_id == sample_service.id
+    
+    @pytest.mark.unit
+    def test_add_multiple_hosts(self, db_session, sample_service):
+        """Test adding multiple hosts to a service."""
+        # Arrange & Act
+        host1 = service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host1", "10.0.0.1", "server"
+        )
+        host2 = service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host2", "10.0.0.2", "client"
+        )
+        
+        # Assert
+        hosts = service_catalog_module.get_service_hosts(db_session, sample_service.id)
+        assert len(hosts) == 2
+        assert hosts[0].hostname == "host1"
+        assert hosts[1].hostname == "host2"
+    
+    @pytest.mark.unit
+    def test_add_host_to_nonexistent_service(self, db_session):
+        """Test adding host to non-existent service."""
+        # Act
+        result = service_catalog_module.add_host_to_service(
+            db_session, 9999, "hostname", "10.0.0.1"
+        )
+        
+        # Assert
+        assert result is None
+    
+    @pytest.mark.unit
+    def test_update_host(self, db_session, sample_service):
+        """Test updating a host."""
+        # Arrange
+        host = service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host1", "10.0.0.1"
+        )
+        
+        # Act
+        result = service_catalog_module.update_host(
+            db_session,
+            host.id,
+            ip_address="10.0.0.2",
+            role="updated-role"
+        )
+        
+        # Assert
+        assert result.ip_address == "10.0.0.2"
+        assert result.role == "updated-role"
+        assert result.hostname == "host1"  # Unchanged
+    
+    @pytest.mark.unit
+    def test_delete_host(self, db_session, sample_service):
+        """Test deleting a host."""
+        # Arrange
+        host = service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host1", "10.0.0.1"
+        )
+        
+        # Act
+        success = service_catalog_module.delete_host(db_session, host.id)
+        
+        # Assert
+        assert success is True
+        hosts = service_catalog_module.get_service_hosts(db_session, sample_service.id)
+        assert len(hosts) == 0
+    
+    @pytest.mark.unit
+    def test_delete_nonexistent_host(self, db_session):
+        """Test deleting non-existent host."""
+        # Act
+        success = service_catalog_module.delete_host(db_session, 9999)
+        
+        # Assert
+        assert success is False
+    
+    @pytest.mark.unit
+    def test_delete_service_cascades_hosts(self, db_session, sample_service):
+        """Test that deleting service deletes its hosts."""
+        # Arrange
+        service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host1", "10.0.0.1"
+        )
+        service_catalog_module.add_host_to_service(
+            db_session, sample_service.id, "host2", "10.0.0.2"
+        )
+        
+        # Act
+        service_catalog_module.delete_service(db_session, sample_service.id)
+        
+        # Assert - Hosts should be deleted too
+        hosts = db_session.query(models.ServiceHost).all()
+        assert len(hosts) == 0
+
+
+class TestServiceConfigFileManagement:
+    """Test service config file management operations."""
+    
+    @pytest.mark.unit
+    def test_add_config_file(self, db_session, sample_service):
+        """Test adding a config file to a service."""
+        # Arrange
+        filepath = "/etc/nginx/sites-available/app"
+        description = "Nginx configuration"
+        
+        # Act
+        result = service_catalog_module.add_config_file(
+            db_session,
+            service_id=sample_service.id,
+            filepath=filepath,
+            description=description,
+            git_tracked=True,
+            secrets_file=False
+        )
+        
+        # Assert
+        assert result is not None
+        assert result.filepath == filepath
+        assert result.description == description
+        assert result.git_tracked is True
+        assert result.secrets_file is False
+        assert result.service_id == sample_service.id
+    
+    @pytest.mark.unit
+    def test_add_secrets_file(self, db_session, sample_service):
+        """Test adding a secrets file."""
+        # Arrange & Act
+        result = service_catalog_module.add_config_file(
+            db_session,
+            sample_service.id,
+            filepath="/opt/service/.env",
+            description="Environment variables",
+            git_tracked=False,
+            secrets_file=True
+        )
+        
+        # Assert
+        assert result.secrets_file is True
+        assert result.git_tracked is False
+    
+    @pytest.mark.unit
+    def test_add_multiple_config_files(self, db_session, sample_service):
+        """Test adding multiple config files."""
+        # Arrange & Act
+        service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/nginx/nginx.conf"
+        )
+        service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/nginx/sites-available/app"
+        )
+        service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/opt/app/.env", secrets_file=True
+        )
+        
+        # Assert
+        config_files = service_catalog_module.get_service_config_files(
+            db_session, sample_service.id
+        )
+        assert len(config_files) == 3
+    
+    @pytest.mark.unit
+    def test_add_config_file_to_nonexistent_service(self, db_session):
+        """Test adding config file to non-existent service."""
+        # Act
+        result = service_catalog_module.add_config_file(
+            db_session, 9999, "/path/to/config"
+        )
+        
+        # Assert
+        assert result is None
+    
+    @pytest.mark.unit
+    def test_update_config_file(self, db_session, sample_service):
+        """Test updating a config file."""
+        # Arrange
+        config_file = service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/config", git_tracked=True
+        )
+        
+        # Act
+        result = service_catalog_module.update_config_file(
+            db_session,
+            config_file.id,
+            description="Updated description",
+            secrets_file=True
+        )
+        
+        # Assert
+        assert result.description == "Updated description"
+        assert result.secrets_file is True
+        assert result.filepath == "/etc/config"  # Unchanged
+    
+    @pytest.mark.unit
+    def test_delete_config_file(self, db_session, sample_service):
+        """Test deleting a config file."""
+        # Arrange
+        config_file = service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/config"
+        )
+        
+        # Act
+        success = service_catalog_module.delete_config_file(db_session, config_file.id)
+        
+        # Assert
+        assert success is True
+        files = service_catalog_module.get_service_config_files(
+            db_session, sample_service.id
+        )
+        assert len(files) == 0
+    
+    @pytest.mark.unit
+    def test_delete_service_cascades_config_files(self, db_session, sample_service):
+        """Test that deleting service deletes its config files."""
+        # Arrange
+        service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/config1"
+        )
+        service_catalog_module.add_config_file(
+            db_session, sample_service.id, "/etc/config2"
+        )
+        
+        # Act
+        service_catalog_module.delete_service(db_session, sample_service.id)
+        
+        # Assert - Config files should be deleted too
+        files = db_session.query(models.ServiceConfigFile).all()
+        assert len(files) == 0
+
+
+class TestEnhancedServiceCreation:
+    """Test service creation with new fields."""
+    
+    @pytest.mark.unit
+    def test_create_service_with_git_repo(self, db_session):
+        """Test creating service with Git repository settings."""
+        # Arrange & Act
+        service = service_catalog_module.create_service(
+            db_session,
+            name="WireGuard VPN Server",
+            service_type="bare_metal",
+            host="linode",
+            git_repo_path="~/calcifer/wireguard-vpn-server",
+            git_repo_url="git@github.com:user/wireguard-vpn-server.git",
+            git_repo_private=True,
+            git_provider="github"
+        )
+        
+        # Assert
+        assert service.git_repo_path == "~/calcifer/wireguard-vpn-server"
+        assert service.git_repo_url == "git@github.com:user/wireguard-vpn-server.git"
+        assert service.git_repo_private is True
+        assert service.git_provider == "github"
+    
+    @pytest.mark.unit
+    def test_create_service_with_deployment_type(self, db_session):
+        """Test creating service with deployment settings."""
+        # Arrange & Act
+        service = service_catalog_module.create_service(
+            db_session,
+            name="FastAPI App",
+            service_type="container",
+            host="localhost",
+            deployment_type="docker",
+            docker_compose_path="~/calcifer/fastapi-app/docker-compose.yml"
+        )
+        
+        # Assert
+        assert service.deployment_type == "docker"
+        assert service.docker_compose_path == "~/calcifer/fastapi-app/docker-compose.yml"
+    
+    @pytest.mark.unit
+    def test_create_service_with_documentation(self, db_session):
+        """Test creating service with documentation fields."""
+        # Arrange & Act
+        service = service_catalog_module.create_service(
+            db_session,
+            name="Service",
+            service_type="vm",
+            host="proxmox",
+            readme_path="~/calcifer/service/docs/README.md",
+            architecture_doc="Multi-tier architecture with load balancer"
+        )
+        
+        # Assert
+        assert service.readme_path == "~/calcifer/service/docs/README.md"
+        assert "Multi-tier" in service.architecture_doc        
