@@ -7,6 +7,13 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-14 - Gavin Wallis - Platform Feature Change
+- Update references to work item in home page
+- Add routes to main for service details
+- Update new service form to track git, document, config, and host details
+- Create service detail page
+- Link service overview to service detail pages
 ## 2025-12-14 - Gavin Wallis - New Service
 - After manual testing we updated the schema validator
 Updated unit tests for service catalog schema changes

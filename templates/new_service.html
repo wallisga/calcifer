@@ -47,6 +47,61 @@
                             <input type="text" class="form-control" name="memory" placeholder="2GB">
                         </div>
                     </div>
+                    <h5 class="mt-4">Git Repository (Optional)</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="git_repo_path" class="form-label">Local Repository Path</label>
+                            <input type="text" class="form-control" id="git_repo_path" name="git_repo_path"
+                                placeholder="~/calcifer/service-name">
+                            <small class="form-text text-muted">Where this service's Git repo will be located</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="git_repo_url" class="form-label">Remote Repository URL</label>
+                            <input type="text" class="form-control" id="git_repo_url" name="git_repo_url"
+                                placeholder="git@github.com:user/service-name.git">
+                            <small class="form-text text-muted">Remote Git repository URL</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="git_provider" class="form-label">Git Provider</label>
+                            <select class="form-select" id="git_provider" name="git_provider">
+                                <option value="">None</option>
+                                <option value="github">GitHub</option>
+                                <option value="gitlab">GitLab</option>
+                                <option value="gitea">Gitea</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" class="form-check-input" id="git_repo_private"
+                                    name="git_repo_private" checked>
+                                <label class="form-check-label" for="git_repo_private">
+                                    Private Repository
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Deployment (Optional)</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="deployment_type" class="form-label">Deployment Type</label>
+                            <select class="form-select" id="deployment_type" name="deployment_type">
+                                <option value="">Not specified</option>
+                                <option value="bare_metal">Bare Metal</option>
+                                <option value="docker">Docker</option>
+                                <option value="kubernetes">Kubernetes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="docker_compose_path" class="form-label">Docker Compose Path</label>
+                            <input type="text" class="form-control" id="docker_compose_path" name="docker_compose_path"
+                                placeholder="~/calcifer/service-name/docker-compose.yml">
+                            <small class="form-text text-muted">Path to docker-compose.yml (if applicable)</small>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary">Add Service</button>
                     <a href="/services" class="btn btn-outline-secondary">Cancel</a>
                 </form>

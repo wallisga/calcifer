@@ -220,15 +220,171 @@ async def create_service(
     ports: str = Form(""),
     cpu: str = Form(""),
     memory: str = Form(""),
+    git_repo_path: str = Form(""),
+    git_repo_url: str = Form(""),
+    git_repo_private: bool = Form(True),
+    git_provider: str = Form(""),
+    deployment_type: str = Form(""),
+    docker_compose_path: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    """Create new service entry."""
-    service_catalog_module.create_service(
-        db, name, service_type, host,
-        url or None, description or None,
-        ports or None, cpu or None, memory or None
+    """
+    Create new service with automatic work item tracking.
+    
+    Work item is created automatically in the background.
+    User is redirected to service detail page, not work item.
+    """
+    # Create service with automatic work item
+    service, work_item = service_catalog_module.create_service_with_work_item(
+        db,
+        name=name,
+        service_type=service_type,
+        host=host,
+        url=url or None,
+        description=description or None,
+        ports=ports or None,
+        cpu=cpu or None,
+        memory=memory or None,
+        git_repo_path=git_repo_path or None,
+        git_repo_url=git_repo_url or None,
+        git_repo_private=git_repo_private,
+        git_provider=git_provider or None,
+        deployment_type=deployment_type or None,
+        docker_compose_path=docker_compose_path or None
     )
-    return RedirectResponse(url="/services", status_code=303)
+    
+    # Redirect to SERVICE detail page (not work item)
+    return RedirectResponse(
+        url=f"/services/{service.id}?success=Service created successfully. Work item #{work_item.id} tracks setup.",
+        status_code=303
+    )
+
+@app.get("/services/{service_id}", response_class=HTMLResponse)
+async def service_detail(
+    request: Request,
+    service_id: int,
+    db: Session = Depends(get_db),
+    success: str = None,
+    error: str = None
+):
+    """Service detail page with tabs for hosts, configs, endpoints, work items."""
+    detail = service_catalog_module.get_service_detail(db, service_id)
+    
+    if not detail:
+        return RedirectResponse(url="/services?error=Service not found", status_code=303)
+    
+    return templates.TemplateResponse("service_detail.html", {
+        "request": request,
+        "service": detail["service"],
+        "hosts": detail["hosts"],
+        "config_files": detail["config_files"],
+        "work_items": detail["work_items"],
+        "endpoints": detail["endpoints"],
+        "success": success,
+        "error": error
+    })
+
+@app.post("/services/{service_id}/add-host")
+async def add_host_to_service(
+    service_id: int,
+    hostname: str = Form(...),
+    ip_address: str = Form(""),
+    role: str = Form(""),
+    description: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Add a host to a service."""
+    host = service_catalog_module.add_host_to_service(
+        db,
+        service_id=service_id,
+        hostname=hostname,
+        ip_address=ip_address or None,
+        role=role or None,
+        description=description or None
+    )
+    
+    if not host:
+        return RedirectResponse(
+            url=f"/services/{service_id}?error=Failed to add host",
+            status_code=303
+        )
+    
+    return RedirectResponse(
+        url=f"/services/{service_id}?success=Host added successfully",
+        status_code=303
+    )
+
+@app.post("/services/{service_id}/add-config-file")
+async def add_config_file_to_service(
+    service_id: int,
+    filepath: str = Form(...),
+    description: str = Form(""),
+    is_template: bool = Form(False),
+    git_tracked: bool = Form(True),
+    secrets_file: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Add a configuration file to track for a service."""
+    config_file = service_catalog_module.add_config_file(
+        db,
+        service_id=service_id,
+        filepath=filepath,
+        description=description or None,
+        is_template=is_template,
+        git_tracked=git_tracked,
+        secrets_file=secrets_file
+    )
+    
+    if not config_file:
+        return RedirectResponse(
+            url=f"/services/{service_id}?error=Failed to add config file",
+            status_code=303
+        )
+    
+    return RedirectResponse(
+        url=f"/services/{service_id}?success=Config file added successfully",
+        status_code=303
+    )
+
+@app.post("/services/{service_id}/delete-host/{host_id}")
+async def delete_service_host(
+    service_id: int,
+    host_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a host from a service."""
+    success = service_catalog_module.delete_host(db, host_id)
+    
+    if success:
+        return RedirectResponse(
+            url=f"/services/{service_id}?success=Host deleted successfully",
+            status_code=303
+        )
+    else:
+        return RedirectResponse(
+            url=f"/services/{service_id}?error=Host not found",
+            status_code=303
+        )
+
+@app.post("/services/{service_id}/delete-config/{config_id}")
+async def delete_service_config(
+    service_id: int,
+    config_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a config file from tracking."""
+    success = service_catalog_module.delete_config_file(db, config_id)
+    
+    if success:
+        return RedirectResponse(
+            url=f"/services/{service_id}?success=Config file removed successfully",
+            status_code=303
+        )
+    else:
+        return RedirectResponse(
+            url=f"/services/{service_id}?error=Config file not found",
+            status_code=303
+        )
 
 # ============================================================================
 # ENDPOINT ROUTES (Monitoring Integration)

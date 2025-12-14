@@ -23,7 +23,11 @@
         <tbody>
             {% for service in services %}
             <tr>
-                <td><strong>{{ service.name }}</strong></td>
+                <td>
+                    <a href="/services/{{ service.id }}" class="text-decoration-none">
+                        <strong>{{ service.name }}</strong>
+                    </a>
+                </td>
                 <td><span class="badge bg-secondary">{{ service.service_type }}</span></td>
                 <td>{{ service.host }}</td>
                 <td>
