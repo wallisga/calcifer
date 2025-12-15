@@ -1,0 +1,5 @@
+{
+  "monitoring_enabled": true,
+  "git_provider_sync": true,
+  "automatic_documentation": true
+}
