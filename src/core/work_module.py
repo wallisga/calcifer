@@ -128,10 +128,14 @@ class WorkModule:
         title: str,
         category: str,
         action_type: str,
-        description: str = ""
+        description: str = None,
+        service_id: int = None  # NEW parameter
     ) -> models.WorkItem:
         """
-        Create a new work item with automatic branch creation and checklist.
+        Create work item with automatic Git branch.
+        
+        If service_id is provided, the Git branch is created in the
+        service's repository. Otherwise, it's created in calcifer-app repo.
         
         Args:
             db: Database session
@@ -139,6 +143,7 @@ class WorkModule:
             category: Category (platform_feature, integration, service, documentation)
             action_type: Action type (new, change, fix)
             description: Optional description
+            service_id: Optional service ID to link work item to
             
         Returns:
             Created WorkItem model instance
@@ -149,15 +154,41 @@ class WorkModule:
             category=category,
             action_type=action_type,
             description=description,
+            service_id=service_id,  # NEW
             status="planning"
         )
         
-        # Generate branch name using git module
+        # Generate branch name
         branch_name = git_module.generate_branch_name(category, action_type, title)
         work_item.git_branch = branch_name
         
-        # Create Git branch
-        git_module.create_branch(branch_name, checkout=True)
+        # Create Git branch - location depends on service_id
+        if service_id:
+            # Get service to find its Git repo path
+            service = db.query(models.Service).filter(
+                models.Service.id == service_id
+            ).first()
+            
+            if service and service.git_repo_path:
+                # Create branch in SERVICE repository
+                success = git_module.create_branch_in_repo(
+                    service.git_repo_path,
+                    branch_name,
+                    checkout=True
+                )
+                
+                if not success:
+                    logger.warning(f"Failed to create branch in service repo, using calcifer-app")
+                    # Fallback to calcifer-app repo
+                    git_module.create_branch(branch_name, checkout=True)
+            else:
+                # Service has no Git repo configured, use calcifer-app
+                logger.warning(f"Service {service_id} has no git_repo_path, using calcifer-app")
+                git_module.create_branch(branch_name, checkout=True)
+        else:
+            # No service_id - this is a platform work item
+            # Create branch in calcifer-app repository
+            git_module.create_branch(branch_name, checkout=True)
         
         # Initialize checklist based on category and action
         work_item.checklist = WorkModule._generate_checklist(category, action_type)
@@ -165,6 +196,9 @@ class WorkModule:
         db.add(work_item)
         db.commit()
         db.refresh(work_item)
+        
+        logger.info(f"Created work item {work_item.id}: {title} " +
+                   f"(service_id: {service_id}, branch: {branch_name})")
         
         return work_item
     
@@ -584,6 +618,25 @@ class WorkModule:
         db.commit()
         
         return True, "Work item completed and merged successfully!"
+    
+    @staticmethod
+    def get_work_items_for_service(
+        db: Session,
+        service_id: int
+    ) -> List[models.WorkItem]:
+        """
+        Get all work items linked to a specific service.
+        
+        Args:
+            db: Database session
+            service_id: Service ID
+            
+        Returns:
+            List of WorkItem models
+        """
+        return db.query(models.WorkItem).filter(
+            models.WorkItem.service_id == service_id
+        ).order_by(models.WorkItem.started_date.desc()).all()    
 
 
 # Singleton instance for easy import

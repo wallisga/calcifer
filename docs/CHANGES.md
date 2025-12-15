@@ -9,6 +9,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-14 - Gavin Wallis - New Integration
+- Introduce new changes available for service linking to repos, work items, and endpoints
 ## 2025-12-14 - Gavin Wallis - New Service
 - Add monitoring endpoint: nginx (network - 10.66.33.111)
 ## 2025-12-14 - Gavin Wallis - Platform Feature Change

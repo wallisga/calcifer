@@ -10,7 +10,7 @@ Remote operations (push, pull, PRs) belong in integrations/git_remote.
 import git
 import os
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
 from pathlib import Path
 
 from .logging_module import get_logger
@@ -330,6 +330,144 @@ class GitModule:
             return 'docs/CHANGES.md' in diff
         except git.GitCommandError:
             return False
+
+    @staticmethod
+    def create_branch_in_repo(
+        repo_path: str,
+        branch_name: str,
+        checkout: bool = True
+    ) -> bool:
+        """
+        Create a Git branch in a specific repository.
+        
+        Args:
+            repo_path: Path to Git repository (e.g., ~/calcifer/service-name)
+            branch_name: Name of branch to create
+            checkout: Whether to checkout the new branch
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            repo_path_expanded = os.path.expanduser(repo_path)
+            
+            # Initialize repo if it doesn't exist
+            if not os.path.exists(os.path.join(repo_path_expanded, '.git')):
+                logger.info(f"Initializing Git repo at {repo_path_expanded}")
+                repo = git.Repo.init(repo_path_expanded)
+                
+                # Create initial commit if repo is empty
+                if not repo.heads:
+                    # Create a README.md
+                    readme_path = Path(repo_path_expanded) / "README.md"
+                    readme_path.write_text(f"# Service Repository\n\nManaged by Calcifer.\n")
+                    repo.index.add(['README.md'])
+                    repo.index.commit("Initial commit")
+                    logger.info("Created initial commit")
+            else:
+                repo = git.Repo(repo_path_expanded)
+            
+            # Create branch
+            if branch_name in repo.heads:
+                logger.warning(f"Branch {branch_name} already exists in {repo_path}")
+                if checkout:
+                    repo.heads[branch_name].checkout()
+                return True
+            
+            new_branch = repo.create_head(branch_name)
+            logger.info(f"Created branch '{branch_name}' in {repo_path}")
+            
+            if checkout:
+                new_branch.checkout()
+                logger.info(f"Checked out branch '{branch_name}'")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error creating branch in {repo_path}: {e}")
+            return False
+    
+    @staticmethod
+    def commit_to_repo(
+        repo_path: str,
+        message: str,
+        files: Optional[List[str]] = None
+    ) -> Optional[str]:
+        """
+        Commit changes to a specific repository.
+        
+        Args:
+            repo_path: Path to Git repository
+            message: Commit message
+            files: List of files to stage (relative to repo root), or None for all changes
+            
+        Returns:
+            Commit SHA if successful, None otherwise
+        """
+        try:
+            repo_path_expanded = os.path.expanduser(repo_path)
+            repo = git.Repo(repo_path_expanded)
+            
+            # Stage files
+            if files:
+                repo.index.add(files)
+            else:
+                repo.git.add(A=True)  # Add all changes
+            
+            # Check if there are changes to commit
+            if not repo.index.diff("HEAD") and not repo.untracked_files:
+                logger.info(f"No changes to commit in {repo_path}")
+                return None
+            
+            # Commit
+            commit = repo.index.commit(message)
+            logger.info(f"Committed to {repo_path}: {commit.hexsha[:7]} - {message}")
+            
+            return commit.hexsha
+            
+        except Exception as e:
+            logger.error(f"Error committing to {repo_path}: {e}")
+            return None
+    
+    @staticmethod
+    def get_repo_status(repo_path: str) -> Dict[str, Any]:
+        """
+        Get status of a specific repository.
+        
+        Args:
+            repo_path: Path to Git repository
+            
+        Returns:
+            Dictionary with repository status
+        """
+        try:
+            repo_path_expanded = os.path.expanduser(repo_path)
+            
+            if not os.path.exists(os.path.join(repo_path_expanded, '.git')):
+                return {
+                    "initialized": False,
+                    "current_branch": None,
+                    "uncommitted_changes": False,
+                    "untracked_files": []
+                }
+            
+            repo = git.Repo(repo_path_expanded)
+            
+            return {
+                "initialized": True,
+                "current_branch": repo.active_branch.name if repo.heads else None,
+                "uncommitted_changes": repo.is_dirty(),
+                "untracked_files": repo.untracked_files,
+                "modified_files": [item.a_path for item in repo.index.diff(None)],
+                "staged_files": [item.a_path for item in repo.index.diff("HEAD")]
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting status for {repo_path}: {e}")
+            return {
+                "initialized": False,
+                "error": str(e)
+            }
 
 
 # Singleton instance for easy import

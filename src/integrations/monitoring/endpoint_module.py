@@ -13,7 +13,7 @@ import json
 
 # Import from CURRENT location (will update paths later)
 from ...core import work_module, documentation_module, git_module
-from ...models import Endpoint, WorkItem
+from ...models import Endpoint, WorkItem, Service
 from .integration import monitoring
 from ...core.logging_module import get_logger
 
@@ -73,18 +73,11 @@ class EndpointModule:
         target: str,
         port: Optional[int],
         check_interval: int,
-        description: Optional[str]
+        description: Optional[str],
+        service_id: Optional[int] = None  # NEW parameter
     ) -> Tuple[int, str]:
         """
         Create endpoint with full work item workflow.
-        
-        This method:
-        1. Creates work item with branch
-        2. Creates endpoint in database
-        3. Generates documentation
-        4. Commits everything to git
-        5. Performs initial health check
-        6. Updates work item notes
         
         Args:
             db: Database session
@@ -98,16 +91,17 @@ class EndpointModule:
         Returns:
             Tuple of (work_item_id, success_message)
         """
-        # 1. Create work item
+        # 1. Create work item (linked to service if provided)
         work_item = work_module.create_work_item(
             db,
             title=f"Add monitoring endpoint: {name}",
-            category="service",
+            category="service" if service_id else "integration",
             action_type="new",
-            description=f"Create monitoring endpoint for {endpoint_type} target: {target}"
+            description=f"Create monitoring endpoint for {endpoint_type} target: {target}",
+            service_id=service_id  # NEW
         )
         
-        # 2. Create endpoint
+        # 2. Create endpoint (linked to service)
         endpoint = Endpoint(
             name=name,
             endpoint_type=endpoint_type,
@@ -116,6 +110,7 @@ class EndpointModule:
             check_interval=check_interval,
             description=description,
             work_item_id=work_item.id,
+            service_id=service_id,  # NEW
             status="unknown"
         )
         
@@ -141,6 +136,39 @@ class EndpointModule:
         db.add(endpoint)
         db.commit()
         db.refresh(endpoint)
+
+        # NEW: If linked to service, save to service metadata
+        if service_id:
+            service = db.query(Service).get(service_id)
+            if service and service.git_repo_path:
+                from ...core.service_metadata_module import service_metadata_module
+                
+                try:
+                    # Add endpoint to service metadata
+                    service_metadata_module.add_endpoint_to_config(
+                        service.git_repo_path,
+                        {
+                            "id": endpoint.id,
+                            "name": name,
+                            "type": endpoint_type,
+                            "target": target,
+                            "port": port,
+                            "check_interval": check_interval,
+                            "created_date": datetime.utcnow().isoformat()
+                        }
+                    )
+                    
+                    # Commit metadata to service repo
+                    from ...core import git_module
+                    git_module.commit_to_repo(
+                        service.git_repo_path,
+                        f"Add endpoint: {name}",
+                        [".calcifer/endpoints.json"]
+                    )
+                    
+                    logger.info(f"Saved endpoint to service metadata and committed")
+                except Exception as e:
+                    logger.error(f"Failed to save endpoint metadata: {e}")        
         
         # 5. Commit to git
         self._commit_endpoint_creation(work_item, name, endpoint_type, target, doc_filename)

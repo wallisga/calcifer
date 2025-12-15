@@ -390,24 +390,141 @@
 
         <!-- Endpoints Tab -->
         <div class="tab-pane fade" id="endpoints" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Monitoring Endpoints</h4>
+                <a href="/endpoints/new?service_id={{ service.id }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Endpoint
+                </a>
+            </div>
+
+            {% if endpoints %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Status</th>
+                            <th>Last Check</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ep in endpoints %}
+                        <tr>
+                            <td>
+                                <strong>{{ ep.name }}</strong>
+                                {% if ep.description %}
+                                <br><small class="text-muted">{{ ep.description }}</small>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-secondary">{{ ep.endpoint_type }}</span></td>
+                            <td>
+                                <code>{{ ep.target }}{% if ep.port %}:{{ ep.port }}{% endif %}</code>
+                            </td>
+                            <td>
+                                {% if ep.status == 'up' %}
+                                <span class="badge bg-success">UP</span>
+                                {% elif ep.status == 'down' %}
+                                <span class="badge bg-danger">DOWN</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">
+                                {% if ep.last_check %}
+                                {{ ep.last_check.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                Never
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/endpoints/{{ ep.id }}/check" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-arrow-clockwise"></i> Check
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
             <div class="card">
                 <div class="card-body text-center text-muted py-5">
                     <i class="bi bi-broadcast" style="font-size: 3rem;"></i>
-                    <p class="mt-3">Endpoint-to-service linking will be available in Work Item 3.</p>
-                    <p class="small">You'll be able to monitor this service with health check endpoints.</p>
+                    <p class="mt-3">No monitoring endpoints for this service.</p>
+                    <a href="/endpoints/new?service_id={{ service.id }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add First Endpoint
+                    </a>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Work Items Tab -->
         <div class="tab-pane fade" id="work-items" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Service Work Items</h4>
+                <span class="badge bg-info">{{ work_items|length }} total</span>
+            </div>
+
+            {% if work_items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Branch</th>
+                            <th>Started</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wi in work_items %}
+                        <tr>
+                            <td><strong>#{{ wi.id }}</strong></td>
+                            <td>
+                                <a href="/work/{{ wi.id }}" class="text-decoration-none">
+                                    {{ wi.title }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-secondary">{{ wi.full_type }}</span></td>
+                            <td>
+                                {% if wi.status == 'planning' %}
+                                <span class="badge bg-info">Planning</span>
+                                {% elif wi.status == 'in_progress' %}
+                                <span class="badge bg-warning">In Progress</span>
+                                {% elif wi.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ wi.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td><code class="small">{{ wi.git_branch }}</code></td>
+                            <td class="small text-muted">{{ wi.started_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="/work/{{ wi.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
             <div class="card">
                 <div class="card-body text-center text-muted py-5">
                     <i class="bi bi-kanban" style="font-size: 3rem;"></i>
-                    <p class="mt-3">Service-linked work items will be available in Work Item 3.</p>
-                    <p class="small">All work items related to this service will be displayed here.</p>
+                    <p class="mt-3">No work items for this service yet.</p>
+                    <p class="small">Work items will appear here when you make changes to this service.</p>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Documentation Tab -->

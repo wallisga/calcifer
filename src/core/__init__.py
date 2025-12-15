@@ -19,19 +19,13 @@ from .service_catalog_module import ServiceCatalogModule, service_catalog_module
 from .documentation_module import DocumentationModule, documentation_module
 from .git_module import GitModule, git_module
 from .settings_module import SettingsModule, settings_module
+from .service_metadata_module import ServiceMetadataModule, service_metadata_module
 
 __all__ = [
-    # Classes
-    'WorkModule',
-    'ServiceCatalogModule',
-    'DocumentationModule',
-    'GitModule',
-    'SettingsModule',
-    
-    # Singleton instances
-    'work_module',
-    'service_catalog_module',
-    'documentation_module',
-    'git_module',
-    'settings_module',
+    'WorkModule', 'work_module',
+    'ServiceCatalogModule', 'service_catalog_module',
+    'DocumentationModule', 'documentation_module',
+    'GitModule', 'git_module',
+    'SettingsModule', 'settings_module',
+    'ServiceMetadataModule', 'service_metadata_module'
 ]

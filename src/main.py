@@ -415,17 +415,32 @@ async def create_endpoint(
     port: int = Form(None),
     check_interval: int = Form(60),
     description: str = Form(""),
+    service_id: int = Form(None),  # NEW parameter
     db: Session = Depends(get_db)
 ):
-    """Create new monitored endpoint."""
-    work_id, success_msg = endpoint_module.create_endpoint_with_work_item(
-        db, name, endpoint_type, target, port, check_interval, description
+    """Create new monitored endpoint with work item."""
+    work_item_id, message = endpoint_module.create_endpoint_with_work_item(
+        db,
+        name=name,
+        endpoint_type=endpoint_type,
+        target=target,
+        port=port,
+        check_interval=check_interval,
+        description=description or None,
+        service_id=service_id  # NEW parameter
     )
     
-    return RedirectResponse(
-        url=f"/work/{work_id}?success={success_msg}",
-        status_code=303
-    )
+    # Redirect based on whether endpoint is linked to service
+    if service_id:
+        return RedirectResponse(
+            url=f"/services/{service_id}?success={message}",
+            status_code=303
+        )
+    else:
+        return RedirectResponse(
+            url=f"/work/{work_item_id}?success={message}",
+            status_code=303
+        )
 
 @app.get("/endpoints/{endpoint_id}", response_class=HTMLResponse)
 async def endpoint_detail(request: Request, endpoint_id: int, db: Session = Depends(get_db)):

@@ -11,9 +11,9 @@ class WorkItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     
-    # NEW: Two-level work type system
-    category = Column(String(50), nullable=False)  # platform_feature, integration, service, documentation
-    action_type = Column(String(50), nullable=False)  # new, change, fix
+    # Two-level work type system
+    category = Column(String(50), nullable=False)
+    action_type = Column(String(50), nullable=False)
     
     # DEPRECATED but keep for backward compatibility
     work_type = Column(String(50), nullable=True)
@@ -38,8 +38,12 @@ class WorkItem(Base):
     # Notes/documentation
     notes = Column(Text)
     
+    # Link to service (nullable - platform work items have no service)
+    service_id = Column(Integer, ForeignKey('services.id'), nullable=True)
+    
     # Relationships
     commits = relationship("Commit", back_populates="work_item", cascade="all, delete-orphan")
+    service = relationship("Service", back_populates="work_items")  # NEW
     
     def __repr__(self):
         return f"<WorkItem(id={self.id}, title='{self.title}', category='{self.category}', action='{self.action_type}')>"
@@ -108,7 +112,8 @@ class Service(Base):
     # Relationships
     hosts = relationship("ServiceHost", back_populates="service", cascade="all, delete-orphan")
     config_files = relationship("ServiceConfigFile", back_populates="service", cascade="all, delete-orphan")
-    
+    work_items = relationship("WorkItem", back_populates="service")
+    endpoints = relationship("Endpoint", back_populates="service")
     
     def __repr__(self):
         return f"<Service(name='{self.name}', type='{self.service_type}', host='{self.host}')>"
@@ -171,13 +176,13 @@ class Endpoint(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True)
-    endpoint_type = Column(String(50), nullable=False)  # network, http, tcp, os, application
-    target = Column(String(200), nullable=False)  # IP address or hostname
-    port = Column(Integer, nullable=True)  # For TCP/HTTP checks
-    check_interval = Column(Integer, default=60)  # Seconds
+    endpoint_type = Column(String(50), nullable=False)
+    target = Column(String(200), nullable=False)
+    port = Column(Integer, nullable=True)
+    check_interval = Column(Integer, default=60)
     
     # Status tracking
-    status = Column(String(20), default="unknown")  # up, down, unknown
+    status = Column(String(20), default="unknown")
     last_check = Column(DateTime, nullable=True)
     last_up = Column(DateTime, nullable=True)
     last_down = Column(DateTime, nullable=True)
@@ -185,14 +190,20 @@ class Endpoint(Base):
     
     # Metadata
     description = Column(Text, nullable=True)
-    documentation_url = Column(String(200), nullable=True)  # Link to docs/{name}.md
-    work_item_id = Column(Integer, ForeignKey("work_items.id"), nullable=True)  # Creation work item
+    documentation_url = Column(String(200), nullable=True)
+    work_item_id = Column(Integer, ForeignKey("work_items.id"), nullable=True)
+    
+    # Link to service (nullable - some endpoints might not belong to a service)
+    service_id = Column(Integer, ForeignKey('services.id'), nullable=True)
     
     # Monitoring config (JSON for flexibility)
-    monitor_config = Column(JSON, default=dict)  # Future: WMI, SNMP, custom checks
+    monitor_config = Column(JSON, default=dict)
     
     created_date = Column(DateTime, default=datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    service = relationship("Service", back_populates="endpoints")
     
     def __repr__(self):
         return f"<Endpoint(name='{self.name}', type='{self.endpoint_type}', status='{self.status}')>"
