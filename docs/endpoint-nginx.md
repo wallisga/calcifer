@@ -3,10 +3,10 @@
 ## Overview
 
 **Type:** NETWORK  
-**Target:** `10.66.33.112`  
+**Target:** `10.66.33.111`  
 **Status:** Monitored by Calcifer
 
-VM hosting an nginx server and static assets containing a catalog of important internal and external sites. Proxy for internal sites listed in the catalog.
+Endpoint monitoring for nginx.
 
 ## Monitoring Configuration
 
@@ -17,7 +17,7 @@ This endpoint is monitored for availability.
 
 ## Access Information
 
-**Target:** `10.66.33.112`
+**Target:** `10.66.33.111`
 
 ## Troubleshooting
 
@@ -25,12 +25,12 @@ This endpoint is monitored for availability.
 
 1. **Check network connectivity:**
 ```bash
-   ping 10.66.33.112
+   ping 10.66.33.111
 ```
 
 2. **Check specific port (if applicable):**
 ```bash
-   nc -zv 10.66.33.112
+   nc -zv 10.66.33.111
 ```
 
 3. **Check firewall rules:**
@@ -43,7 +43,7 @@ This endpoint is monitored for availability.
 
 ## History
 
-- **Created:** 2025-11-23
+- **Created:** 2025-12-14
 - **Purpose:** Monitor availability of nginx
 
 ## Related
