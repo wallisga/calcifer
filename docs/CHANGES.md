@@ -10,6 +10,9 @@ All changes are logged here. These are auto-generated using the Merge & Complete
 
 
 
+
+## 2025-12-18 - Gavin Wallis - New Platform Feature
+- Remove unused integration files and unnecessary wizards.
 ## 2025-12-14 - Gavin Wallis - New Integration
 - Introduce new changes available for service linking to repos, work items, and endpoints
 ## 2025-12-14 - Gavin Wallis - New Service
